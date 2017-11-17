@@ -1,6 +1,7 @@
+package record
 
-import SizeConst.*
-import Validity.*
+import record.SizeConst.*
+import record.Validity.*
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.util.*
@@ -37,7 +38,10 @@ enum class Validity(val value:Int){
 }
 fun <T> emptyMutableList() = LinkedList<T>()
 
-fun <T> Record<T>.isValid() = validity == Valid
+fun Record.isValid() = validity == Valid
 
 operator fun SizeConst.plus(other: SizeConst) = other.value + this.value
 operator fun Int      .plus(other: SizeConst) = other.value + this
+
+fun repeat(block: () -> Unit) = block
+infix inline fun (() -> Unit).until(cond: () -> Boolean) { while (!cond()) this() }

@@ -1,32 +1,34 @@
-import SizeConst.*
-import Validity.*
+package record
+
+import record.SizeConst.*
+import record.Validity.*
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.util.*
 
-fun main(args: Array<String>) {
-    val a = Person("Andrej", 40, Date())
-    val b = Person("Peter" , 29, Date())
-    val c = Person("Pavol" , 30, Date())
-    val block      = Block(listOf(a,b,c))
-    val bytesBlock = block.toBytes()
-    val newBlock   = block.fromBytes(bytesBlock)
-    println(block.toString())
-    println(newBlock.toString())
-}
+class Person : Record {
 
-class Person(name: String, val age: Int, val date: Date) : Record<Person> {
+    var name: String
+    var age: Int
+    var date: Date
 
-    val name: String
+    constructor(){
+        name = ""
+        age  = -1
+        date = Date(0)
+    }
 
-    init {
+    constructor(name: String, age: Int, date: Date) {
+        this.age = age
+        this.date = date
         if (name.length < maxStringLength)
             this.name = name
         else
             throw IllegalArgumentException("Name must be shorter than $maxStringLength")
     }
+
 
     override fun toBytes(): ByteArray {
         val outputStream = ByteArrayOutputStream()
@@ -49,7 +51,7 @@ class Person(name: String, val age: Int, val date: Date) : Record<Person> {
     }
 
     override val size: Int
-        get() = super.size + SizeOfString + SizeOfInt + SizeOfLong
+        get() = super.size + SizeOfString + SizeOfInt + SizeOfDate
 
     override var validity = Valid
 
