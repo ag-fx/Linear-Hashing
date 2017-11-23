@@ -1,24 +1,26 @@
 package record
 
-import record.SizeConst.*
-import record.Validity.*
+import AbstractData.SizeConst.SizeOfInt
+import record.Validity.Invalid
+import record.Validity.Valid
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.util.*
+import kotlin.reflect.full.primaryConstructor
 
-fun DataOutputStream.writeString(string: String) {
+fun DataOutputStream.writeString(string: String, maxStringSize: Int) {
     writeInt(string.length)
     writeChars(string)
-    (1..MaxStringLength.value - string.length ).forEach { writeChar(0) }
+    (1..maxStringSize - string.length).forEach { writeChar(0) }
 }
 
-fun DataInputStream.readString(): String {
+fun DataInputStream.readString(maxStringSize: Int): String {
     var result = ""
     val stringLength = readInt()
     for (i in 1..stringLength) {
         result += readChar()
     }
-    (1..MaxStringLength.value - stringLength ).forEach { readChar() }
+    (1..maxStringSize - stringLength ).forEach { readChar() }
     return result
 }
 
@@ -38,10 +40,11 @@ enum class Validity(val value:Int){
 }
 fun <T> emptyMutableList() = LinkedList<T>()
 
-fun Record.isValid() = validity == Valid
-
-operator fun SizeConst.plus(other: SizeConst) = other.value + this.value
-operator fun Int      .plus(other: SizeConst) = other.value + this
-
 fun repeat(block: () -> Unit) = block
 infix inline fun (() -> Unit).until(cond: () -> Boolean) { while (!cond()) this() }
+
+
+fun<T: Any> T.getClass()   = javaClass.kotlin
+fun ByteIterator.skipInt() = (1..SizeOfInt.value).forEach { nextByte() }
+
+inline fun <reified T : Any> create(): T = T::class.primaryConstructor!!.call()

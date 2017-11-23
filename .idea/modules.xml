@@ -2,7 +2,6 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/Datastructures/Datastructures.iml" filepath="$PROJECT_DIR$/Datastructures/Datastructures.iml" />
       <module fileurl="file://$PROJECT_DIR$/Recordable/Recordable.iml" filepath="$PROJECT_DIR$/Recordable/Recordable.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/com.chmelar.iml" filepath="$PROJECT_DIR$/.idea/modules/com.chmelar.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/com.chmelar_main.iml" filepath="$PROJECT_DIR$/.idea/modules/com.chmelar_main.iml" group="com.chmelar" />
