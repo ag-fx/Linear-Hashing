@@ -1,8 +1,10 @@
-package AbstractData
+package test
 
+import AbstractData.Record
+import AbstractData.SizeConst
+import AbstractData.plus
+import AbstractData.toBytes
 import record.*
-import record.SizeConst.*
-import record.Validity.Valid
 import java.io.ByteArrayInputStream
 import java.io.DataInputStream
 import java.util.*
@@ -22,9 +24,9 @@ data class Person(var name:String, var lastName:String, var birthDate: Date = Da
     override fun fromByteArray(byteArray: ByteArray): Person {
         val dis  = DataInputStream(ByteArrayInputStream(byteArray))
         val validity = dis.readValidity()
-        val name = dis.readString()
-        val last = dis.readString()
-        val date = dis.readDate()
+        val name     = dis.readString()
+        val last     = dis.readString()
+        val date     = dis.readDate()
         return Person(name, last, date).apply {
             this.validity = validity
         }
@@ -32,12 +34,10 @@ data class Person(var name:String, var lastName:String, var birthDate: Date = Da
     }
 
     override val byteSize: Int
-        get() = 2* stringByteSize() + SizeOfDate +  SizeOfValidity
+        get() = 2 * stringByteSize() + SizeConst.SizeOfDate + SizeConst.SizeOfValidity
 
-    override var validity: Validity = Valid
+    override var validity: Validity = Validity.Valid
 
 
 
 }
-
-

@@ -21,6 +21,7 @@ fun <T : Serializable<T>> Block<T>.add(item: T): Boolean {
     data.add(item)
     return true
 }
+
 fun <T : Serializable<T> > Block<T>.get   (item: T) : T? = data.firstOrNull{item == it }
 fun <T : Serializable<T> > Block<T>.delete(item: T) : Boolean = get(item)?.let { it.validity = Validity.Invalid; true  } ?: false
 fun <T : Serializable<T> > Block<T>.isFull() : Boolean = data.size==blockSize && data.all{it.isValid()}

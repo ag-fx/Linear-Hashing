@@ -29,6 +29,9 @@ class ReadWrite(val path: String) {
         return false
     }
 
+    fun writeFrom(position: Int, byteArray: ByteArray) = write(byteArray,byteArray.size,position)
+
+
     fun read(size: Int, index: Int): ByteArray {
         val vysledok = StringBuffer()
         val bytes = ByteArray(size)

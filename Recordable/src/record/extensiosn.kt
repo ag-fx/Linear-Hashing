@@ -6,7 +6,6 @@ import record.Validity.Valid
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.util.*
-import kotlin.reflect.full.primaryConstructor
 
 fun DataOutputStream.writeString(string: String, maxStringSize: Int) {
     writeInt(string.length)
@@ -47,4 +46,4 @@ infix inline fun (() -> Unit).until(cond: () -> Boolean) { while (!cond()) this(
 fun<T: Any> T.getClass()   = javaClass.kotlin
 fun ByteIterator.skipInt() = (1..SizeOfInt.value).forEach { nextByte() }
 
-inline fun <reified T : Any> create(): T = T::class.primaryConstructor!!.call()
+//inline fun <reified T : Any> create(): T = T::class.primaryConstructor!!.call()

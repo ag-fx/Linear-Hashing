@@ -2,16 +2,13 @@
 
 package record
 
-import record.SizeConst.SizeOfInt
-import record.SizeConst.SizeOfValidity
-import record.Validity.Valid
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import kotlin.reflect.KClass
-import kotlin.reflect.full.createInstance
-import kotlin.reflect.full.primaryConstructor
+//import kotlin.reflect.full.createInstance
+//import kotlin.reflect.full.primaryConstructor
 
 //
 //interface Record {
@@ -26,14 +23,14 @@ import kotlin.reflect.full.primaryConstructor
 //
 //class Block< T: Record> : Record {
 //
-//    val blockSize : Int
+//    val numberOfRecordsInBlock : Int
 //    val data      : List<T>
 //    val record    : T
 //
-//    constructor(data: List<T>, blockSize: Int, type: KClass<T>) {
+//    constructor(data: List<T>, numberOfRecordsInBlock: Int, ofType: KClass<T>) {
 //        this.data      = data
-//        this.blockSize = blockSize
-//        this.record    = type.createInstance()
+//        this.numberOfRecordsInBlock = numberOfRecordsInBlock
+//        this.record    = ofType.createInstance()
 //    }
 //
 //
@@ -50,14 +47,14 @@ import kotlin.reflect.full.primaryConstructor
 //        }
 //
 //        val result =  byteOutStream.toByteArray()
-//        if(result.size > blockSize) throw IllegalStateException("Block size overflow")
+//        if(result.size > numberOfRecordsInBlock) throw IllegalStateException("Block size overflow")
 //        return result
 //    }
 //
 //    override fun fromBytes(bytes: ByteArray) : Record {
 //        val dis         = DataInputStream(ByteArrayInputStream(bytes))
 //        val validity    = dis.readValidity()
-//        val blockSize   = dis.readInt()
+//        val numberOfRecordsInBlock   = dis.readInt()
 //
 //    TODO()
 //    }
@@ -67,7 +64,7 @@ import kotlin.reflect.full.primaryConstructor
 //        get() = throw IllegalStateException ("Block shoudln't")
 //
 //    override val size: Int
-//        get()       = blockSize * record.size + SizeOfInt + SizeOfValidity + SizeOfInt
+//        get()       = numberOfRecordsInBlock * record.size + SizeOfInt + SizeOfValidity + SizeOfInt
 //    override var validity: Validity
 //        get()       = Valid
 //        set(value)  = TODO()

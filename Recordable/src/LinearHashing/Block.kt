@@ -1,4 +1,5 @@
 package LinearHashing
+
 import AbstractData.*
 import AbstractData.SizeConst.*
 import record.*
@@ -14,6 +15,7 @@ class LinearHashFileBlock<T: Record<T>> : Block<T> {
     override var data : MutableList<T>
     override val ofType : T
     override fun toString() = data.toString()
+    private val invalidAddress         = Integer.MIN_VALUE
 
     constructor(blockSize:Int, ofType : T,addressInFile :Int = 0) {
         this.blockSize     = blockSize
@@ -23,10 +25,11 @@ class LinearHashFileBlock<T: Record<T>> : Block<T> {
         this.ofType        = ofType
     }
 
-    constructor(blockSize: Int,ofType: T, data : MutableList<T>){
+    constructor(blockSize: Int,ofType: T, data : List<T>){
+        if(data.size > blockSize) throw IllegalArgumentException("you can't initialize block with more data than block size")
         this.blockSize      = blockSize
         this.recordCount    = data.size
-        this.data           = data
+        this.data           = data.toMutableList()
         this.addressInFile  = 0
         this.ofType         = ofType
     }
