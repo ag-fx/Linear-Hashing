@@ -24,11 +24,9 @@ fun DataInputStream.readString(maxStringSize: Int): String {
 }
 
 fun DataOutputStream.writeValidity(validity: Validity) = writeInt(validity.value)
-
 fun DataInputStream.readValidity() = readInt().validityValue()
 
 fun DataOutputStream.writeDate(date: Date) = writeLong(date.time)
-
 fun DataInputStream.readDate() = Date(readLong())
 
 fun Int.validityValue()  = if(this==1) Valid else if (this==2) Invalid else throw IllegalArgumentException("Validitiy is either ${Valid.value} or ${Invalid.value}")
@@ -41,9 +39,3 @@ fun <T> emptyMutableList() = LinkedList<T>()
 
 fun repeat(block: () -> Unit) = block
 infix inline fun (() -> Unit).until(cond: () -> Boolean) { while (!cond()) this() }
-
-
-fun<T: Any> T.getClass()   = javaClass.kotlin
-fun ByteIterator.skipInt() = (1..SizeOfInt.value).forEach { nextByte() }
-
-//inline fun <reified T : Any> create(): T = T::class.primaryConstructor!!.call()

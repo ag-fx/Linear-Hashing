@@ -2,6 +2,7 @@ package AbstractData
 
 import AbstractData.SizeConst.SizeOfChar
 import AbstractData.SizeConst.SizeOfInt
+import record.Validity
 import record.readString
 import record.writeString
 import java.io.ByteArrayOutputStream
@@ -17,9 +18,13 @@ interface Record<T> : Serializable<T>{
     fun DataInputStream .readString()                 = readString(stringSize)
     fun stringByteSize() :Int = stringSize * SizeOfChar + SizeOfInt
 }
+fun <T:Serializable<T>> Record<T>.invalidate() {
+    validity=Validity.Invalid
+}
+fun <T:Serializable<T>> Record<T>.validate() {
+    validity=Validity.Valid
 
-
-private operator fun Int.times(sizeOf: SizeConst): Int = this * sizeOf.value
+}
 
 inline fun toBytes(f: DataOutputStream.() -> Unit): ByteArray{
     val byteOutStream = ByteArrayOutputStream()
@@ -29,4 +34,3 @@ inline fun toBytes(f: DataOutputStream.() -> Unit): ByteArray{
     }
     return byteOutStream.toByteArray()
 }
-

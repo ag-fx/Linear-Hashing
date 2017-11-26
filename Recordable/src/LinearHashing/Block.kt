@@ -15,23 +15,25 @@ class LinearHashFileBlock<T: Record<T>> : Block<T> {
     override var data : MutableList<T>
     override val ofType : T
     override fun toString() = data.toString()
-    private val invalidAddress         = Integer.MIN_VALUE
+    private val invalidAddress = Integer.MIN_VALUE
 
     constructor(blockSize:Int, ofType : T,addressInFile :Int = 0) {
         this.blockSize     = blockSize
-        this.recordCount   = 0
+        this.recordCount   = blockSize
         this.addressInFile = addressInFile
-        this.data          = emptyMutableList()
+        this.data          = (0 until blockSize).map { ofType.apply { validity=Validity.Invalid } }.toMutableList()
+        ofType.validity    = Validity.Invalid
         this.ofType        = ofType
-    }
 
+    }
     constructor(blockSize: Int,ofType: T, data : List<T>){
-        if(data.size > blockSize) throw IllegalArgumentException("you can't initialize block with more data than block size")
         this.blockSize      = blockSize
         this.recordCount    = data.size
         this.data           = data.toMutableList()
         this.addressInFile  = 0
         this.ofType         = ofType
+        if(data.size > blockSize) throw IllegalArgumentException("you can't initialize block with more data than block size")
+
     }
 
     override fun toByteArray() = toBytes {
@@ -41,13 +43,13 @@ class LinearHashFileBlock<T: Record<T>> : Block<T> {
         writeInt(recordCount)
         for(i in 0 until blockSize){
             val record = data.getOrNull(i)
-            if(record!=null)
+            if(record!=null) {
                 write(record.toByteArray())
+            }
             else
-                write(ByteArray(ofType.byteSize))
+                write(ofType.apply { validity = Validity.Invalid }.toByteArray())
         }
     }
-
 
     override fun fromByteArray(byteArray: ByteArray): Block<T> {
         val b = DataInputStream(ByteArrayInputStream(byteArray))
@@ -68,12 +70,11 @@ class LinearHashFileBlock<T: Record<T>> : Block<T> {
         }
 
         return LinearHashFileBlock(blockSize, ofType).apply {
-            this.validity=valid
-            this.addressInFile=addressInFile
-            this.recordCount=recordCount
+            this.validity = valid
+            this.addressInFile = addressInFile
+            this.recordCount = recordCount
             this.data = readList
         }
-
     }
 
     override val byteSize: Int

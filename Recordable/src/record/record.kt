@@ -27,10 +27,10 @@ import kotlin.reflect.KClass
 //    val data      : List<T>
 //    val record    : T
 //
-//    constructor(data: List<T>, numberOfRecordsInBlock: Int, ofType: KClass<T>) {
+//    constructor(data: List<T>, numberOfRecordsInBlock: Int, instanceOfType: KClass<T>) {
 //        this.data      = data
 //        this.numberOfRecordsInBlock = numberOfRecordsInBlock
-//        this.record    = ofType.createInstance()
+//        this.record    = instanceOfType.createInstance()
 //    }
 //
 //

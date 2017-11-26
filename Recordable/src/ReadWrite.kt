@@ -8,7 +8,7 @@ class ReadWrite(val path: String) {
     private val file = RandomAccessFile(path, "rw")
 
     fun size() = file.length()
-
+    var lastByteAddress = 0
     fun write(byteArray: ByteArray, size: Int, position: Int): Boolean {
         val empty = ByteArray(size)
         try {
@@ -17,6 +17,7 @@ class ReadWrite(val path: String) {
                 write(empty)
                 seek(position)
                 write(byteArray)
+                lastByteAddress = size
                 return true
             }
         } catch (e: FileNotFoundException) {
@@ -30,7 +31,6 @@ class ReadWrite(val path: String) {
     }
 
     fun writeFrom(position: Int, byteArray: ByteArray) = write(byteArray,byteArray.size,position)
-
 
     fun read(size: Int, index: Int): ByteArray {
         val vysledok = StringBuffer()
@@ -51,6 +51,8 @@ class ReadWrite(val path: String) {
 
         return bytes
     }
+
+
 
 }
 fun RandomAccessFile.seek(position: Int) = seek(position.toLong())

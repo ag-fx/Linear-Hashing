@@ -1,9 +1,6 @@
 package test
 
-import AbstractData.Record
-import AbstractData.SizeConst
-import AbstractData.plus
-import AbstractData.toBytes
+import AbstractData.*
 import record.*
 import java.io.ByteArrayInputStream
 import java.io.DataInputStream
@@ -37,7 +34,5 @@ data class Person(var name:String, var lastName:String, var birthDate: Date = Da
         get() = 2 * stringByteSize() + SizeConst.SizeOfDate + SizeConst.SizeOfValidity
 
     override var validity: Validity = Validity.Valid
-
-
-
+    override fun toString(): String = if(isValid()) "$name $lastName" else "null"
 }
