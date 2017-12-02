@@ -10,6 +10,7 @@ import LinearHashing.LinearHashingFile
 import io.kotlintest.matchers.shouldBe
 import io.kotlintest.matchers.shouldEqual
 import io.kotlintest.specs.StringSpec
+import junit.framework.TestCase
 import record.Validity
 import record.Validity.Invalid
 import record.Validity.Valid
@@ -50,7 +51,6 @@ class LinearHashingFileTest : StringSpec({
 
 class MyInt(val value: Int) : Record<MyInt> {
 
-
     override fun toByteArray() = toBytes {
         writeValidity(validity)
         writeInt(value)
@@ -84,18 +84,15 @@ class MyInt(val value: Int) : Record<MyInt> {
 }
 
 class LinearHashingPrednaska : StringSpec({
-    val pathToFile = "test_prednaska.bin"
-    val ds = LinearHashingFile(pathToFile = pathToFile, blockCount = 2, numberOfRecordsInBlock = 2, instanceOfType = MyInt(5), maxDensity = 0.8f, additioanlBlockSize = 1)
+    val pathToFile = "test_prednaska"
+    val ds = LinearHashingFile(pathToFile = pathToFile, blockCount = 2, numberOfRecordsInBlock = 2, instanceOfType = MyInt(5), maxDensity = 0.8f, numberOfRecordsInAdditionalBlock = 1)
     val invalid = MyInt(5).apply { validity=Invalid }
-    "before test"{
-        println("""
-            record size ${invalid.byteSize}
-            block sajz  ${ds.blockByteSize}
+    val scope = "scope"
 
-            """)
-        File(pathToFile).delete()
-        File(pathToFile).createNewFile()
-    }
+    "delete"{
+       ds.deleteFiles() shouldBe  true
+     }
+/*
     "18,27,29"{
         ds.add(18)
         ds.add(27)
@@ -113,8 +110,64 @@ class LinearHashingPrednaska : StringSpec({
         val b3 = listOf(MyInt(18),invalid)
         ds.allBlocksInFile() shouldBe listOf(b1,b2,b3)
     }
+    "additional block is ok"{
+        ds.add(18)
+        ds.add(27)
+        ds.add(29)
+        ds.add(28)
+        val t = MyInt(39)
+        ds.add(t)
+        val b1 = listOf(MyInt(28), invalid)
+        val b2 = listOf(MyInt(27), MyInt(29))
+        val b3 = listOf(MyInt(18), invalid)
+        println(ds.allBlocksInFile())
+        println(ds.additionalFile.allBlocksInFile() )
+        ds.additionalFile.allBlocksInFile() shouldBe listOf(listOf(MyInt(39)))
+    }
+
+    "linear hash file is ok"{
+        val t = MyInt(39)
+
+        with(ds) {
+            add(18)
+            add(27)
+            add(29)
+            add(28)
+        }
+        ds.add(t)
+
+        val b1 = listOf(MyInt(28), invalid)
+        val b2 = listOf(MyInt(27), MyInt(29))
+        val b3 = listOf(MyInt(18), invalid)
+        println(ds.allBlocksInFile())
+        println(ds.additionalFile.allBlocksInFile() )
+
+        ds.allBlocksInFile() shouldBe listOf(b1, b2, b3)
+
+    }
+
+*/
+    "second item to be added in additional block"{
+        val t = MyInt(13)
+
+        with(ds) {
+            add(18)
+            add(27)
+            add(29)
+            add(28)
+            add(39)
+        }
+        ds.add(t)
+
+        val b1 = listOf(MyInt(28), invalid)
+        val b2 = listOf(MyInt(27), MyInt(29))
+        val b3 = listOf(MyInt(18), invalid)
+        println( ds.additionalFile.allBlocksInFile())
+        ds.additionalFile.allBlocksInFile() shouldBe listOf(listOf(MyInt(39)), listOf(MyInt(13)))
+
+    }
 
 })
 
 
-fun LinearHashingFile<MyInt>.add(int: Int) = add(MyInt(int))
+inline fun LinearHashingFile<MyInt>.add(int: Int) = add(MyInt(int))

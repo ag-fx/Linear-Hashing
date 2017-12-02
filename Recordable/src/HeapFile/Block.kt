@@ -1,24 +1,22 @@
 package HeapFile
 
-import AbstractData.Block
-import AbstractData.Record
-import AbstractData.Serializable
-import AbstractData.toBytes
-import com.sun.xml.internal.messaging.saaj.util.ByteInputStream
+import AbstractData.*
+import AbstractData.SizeConst.SizeOfInt
 import record.Validity
 import record.Validity.*
 import record.emptyMutableList
 import java.io.ByteArrayInputStream
 import java.io.DataInputStream
+import java.util.*
 
 class HeapFileBlock<T : Record<T>> : Block<T> {
 
     override var data           : MutableList<T>
-    override var addressInFile: Int = -1
-
-    override val byteSize   : Int get() = recordCount * ofType.byteSize
-    override val blockSize  : Int get() = recordCount * byteSize
-    override var recordCount: Int get() = data.size
+    override var addressInFile  : Int = -1
+    override var additionalBlockAddress :Int = -1
+    override val byteSize   : Int get() = recordCount * ofType.byteSize + SizeOfInt * 2
+    override val blockSize  : Int get() = recordCount * ofType.byteSize + SizeOfInt * 2
+    override var recordCount: Int// get() = data.size
 
     override val ofType: T
 
@@ -27,7 +25,27 @@ class HeapFileBlock<T : Record<T>> : Block<T> {
         this.addressInFile = addressInFile
         this.recordCount = data.size
         this.ofType = ofType
+
+        if(data.isEmpty()) throw IllegalArgumentException("Data can't be empty!")
     }
+
+    constructor(numberOfRecordsInBlock: Int, instanceOfRecord: T) {
+        this.data = Collections.nCopies(numberOfRecordsInBlock,instanceOfRecord.apply { invalidate() })
+        this.addressInFile = -1
+        this.recordCount = numberOfRecordsInBlock
+        this.ofType = instanceOfRecord
+
+        if(numberOfRecordsInBlock <= 0) throw IllegalArgumentException("Number of records in block has to be bigger than 0")
+    }
+
+    constructor(toCopy : HeapFileBlock<T>){
+        this.data = toCopy.data
+        this.addressInFile = toCopy.addressInFile
+        this.recordCount = toCopy.recordCount
+        this.ofType = toCopy.ofType
+    }
+
+    fun copy() = HeapFileBlock(this)
 
     override fun toByteArray() = toBytes {
         writeInt(recordCount)
@@ -36,6 +54,7 @@ class HeapFileBlock<T : Record<T>> : Block<T> {
             write(it.toByteArray())
         }
     }
+
 
     override fun fromByteArray(byteArray: ByteArray): Block<T> {
         val dis = DataInputStream(ByteArrayInputStream(byteArray))
@@ -47,13 +66,12 @@ class HeapFileBlock<T : Record<T>> : Block<T> {
             val bytes = ByteArray(ofType.byteSize)
             for (j in 0 until ofType.byteSize)
                 bytes[j] = dis.readByte()
+
             readList.add(ofType.fromByteArray(bytes))
         }
 
         return HeapFileBlock(readList, addressInFile, ofType)
     }
-
-    
 
     override var validity: Validity = Valid
 

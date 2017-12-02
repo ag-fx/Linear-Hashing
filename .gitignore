@@ -56,7 +56,7 @@ fabric.properties
 # Ignore Gradle GUI config
 gradle-app.setting
 
-# Avoid ignoring Gradle wrapper jar file (.jar files are usually ignored)
+# Avoid ignoring Gradle wrapper jar heapFile (.jar files are usually ignored)
 !gradle-wrapper.jar
 
 # Cache of project
@@ -65,10 +65,10 @@ gradle-app.setting
 # # Work around https://youtrack.jetbrains.com/issue/IDEA-116898
 # gradle/wrapper/gradle-wrapper.properties
 ### Kotlin template
-# Compiled class file
+# Compiled class heapFile
 *.class
 
-# Log file
+# Log heapFile
 *.log
 
 # BlueJ files
@@ -90,7 +90,7 @@ hs_err_pid*
 ### Linux template
 *~
 
-# temporary files which can be created if a process still has a handle open of a deleted file
+# temporary files which can be created if a process still has a handle open of a deleted heapFile
 .fuse_hidden*
 
 # KDE directory preferences
@@ -99,5 +99,5 @@ hs_err_pid*
 # Linux trash folder which might appear on any partition or disk
 .Trash-*
 
-# .nfs files are created when an open file is removed but is still being accessed
+# .nfs files are created when an open heapFile is removed but is still being accessed
 .nfs*

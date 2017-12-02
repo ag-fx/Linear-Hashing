@@ -1,3 +1,5 @@
+@file:Suppress("LeakingThis")
+
 package LinearHashing
 
 import AbstractData.*
@@ -6,16 +8,17 @@ import record.*
 import java.io.ByteArrayInputStream
 import java.io.DataInputStream
 
-class LinearHashFileBlock<T: Record<T>> : Block<T> {
+
+open class LinearHashFileBlock<T: Record<T>> : Block<T> {
 
     override var addressInFile: Int
+    override var additionalBlockAddress :Int
     override val blockSize: Int
     override var recordCount: Int
         get() = data.size
     override var data : MutableList<T>
     override val ofType : T
     override fun toString() = data.toString()
-    private val invalidAddress = Integer.MIN_VALUE
 
     constructor(blockSize:Int, ofType : T,addressInFile :Int = 0) {
         this.blockSize     = blockSize
@@ -24,6 +27,8 @@ class LinearHashFileBlock<T: Record<T>> : Block<T> {
         this.data          = (0 until blockSize).map { ofType.apply { validity=Validity.Invalid } }.toMutableList()
         ofType.validity    = Validity.Invalid
         this.ofType        = ofType
+        this.additionalBlockAddress = -1
+
 
     }
     constructor(blockSize: Int,ofType: T, data : List<T>){
@@ -32,15 +37,29 @@ class LinearHashFileBlock<T: Record<T>> : Block<T> {
         this.data           = data.toMutableList()
         this.addressInFile  = 0
         this.ofType         = ofType
+        this.additionalBlockAddress = -1
+
         if(data.size > blockSize) throw IllegalArgumentException("you can't initialize block with more data than block size")
 
     }
+
+    private constructor(toCopy : LinearHashFileBlock<T>){
+        this.blockSize     = toCopy.blockSize
+        this.recordCount   = toCopy.recordCount
+        this.addressInFile = toCopy.addressInFile
+        this.data          = toCopy.data
+        this.ofType        = toCopy.ofType
+        this.additionalBlockAddress = toCopy.additionalBlockAddress
+    }
+
+    fun copy() = LinearHashFileBlock(this)
 
     override fun toByteArray() = toBytes {
         writeValidity(validity)
         writeInt(addressInFile)
         writeInt(blockSize)
         writeInt(recordCount)
+        writeInt(additionalBlockAddress)
         for(i in 0 until blockSize){
             val record = data.getOrNull(i)
             if(record!=null) {
@@ -54,13 +73,13 @@ class LinearHashFileBlock<T: Record<T>> : Block<T> {
     override fun fromByteArray(byteArray: ByteArray): Block<T> {
         val b = DataInputStream(ByteArrayInputStream(byteArray))
 
-        val valid = b.readValidity()
+        val valid         = b.readValidity()
         val addressInFile = b.readInt()
-        val blockSize = b.readInt()
-        val recordCount = b.readInt()
-        val recordSize = ofType.byteSize
-        val readList = emptyMutableList<T>()
-
+        val blockSize     = b.readInt()
+        val recordCount   = b.readInt()
+        val recordSize    = ofType.byteSize
+        val readList      = emptyMutableList<T>()
+        val additionalBlockAddress = b.readInt()
         for (i in 0 until recordCount) {
             val bytes = ByteArray(recordSize)
             for (j in 0 until recordSize)
@@ -70,15 +89,21 @@ class LinearHashFileBlock<T: Record<T>> : Block<T> {
         }
 
         return LinearHashFileBlock(blockSize, ofType).apply {
-            this.validity = valid
-            this.addressInFile = addressInFile
-            this.recordCount = recordCount
-            this.data = readList
+            this.validity               = valid
+            this.addressInFile          = addressInFile
+            this.recordCount            = recordCount
+            this.data                   = readList
+            this.additionalBlockAddress = additionalBlockAddress
         }
     }
 
     override val byteSize: Int
-        get() = SizeOfValidity + SizeOfInt + SizeOfInt + SizeOfInt + (blockSize * ofType.byteSize)
+        get() = SizeOfValidity + SizeOfInt + SizeOfInt + SizeOfInt + SizeOfInt + (blockSize * ofType.byteSize)
     override var validity: Validity = Validity.Valid
 
+}
+
+class LinearHashFileAdditionalBlock<T:Record<T>>:LinearHashFileBlock<T>{
+    constructor(blockSize:Int, ofType : T,addressInFile :Int = 0)  : super(blockSize, ofType, addressInFile)
+    constructor(blockSize: Int,ofType: T, data : List<T>)          : super(blockSize, ofType, data)
 }
