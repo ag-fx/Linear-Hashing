@@ -147,6 +147,7 @@ class LinearHashingPrednaska : StringSpec({
     }
 
 */
+
     "second item to be added in additional block"{
         val t = MyInt(13)
 
@@ -159,9 +160,11 @@ class LinearHashingPrednaska : StringSpec({
         }
         ds.add(t)
 
+
         val b1 = listOf(MyInt(28), invalid)
         val b2 = listOf(MyInt(27), MyInt(29))
         val b3 = listOf(MyInt(18), invalid)
+        println(ds.allBlocksInFile())
         println( ds.additionalFile.allBlocksInFile())
         ds.additionalFile.allBlocksInFile() shouldBe listOf(listOf(MyInt(39)), listOf(MyInt(13)))
 

@@ -3,15 +3,15 @@ package HeapFile
 import AbstractData.*
 import record.emptyMutableList
 import src.ReadWrite
-import java.util.*
 
 class HeapFile<T : Record<T>> {
 
     private val blockRecordCount: Int
     private val blockSize: Int get () = instanceOfBlock.byteSize
-    val heapFile: ReadWrite
+    private val heapFile: ReadWrite
     private val instanceOfRecord: T
     private val instanceOfBlock: HeapFileBlock<T>
+    var totalNumberOfRecords = 0
 
     val emptyBlockAddresses       = emptyMutableList<Int>()
 
@@ -28,55 +28,59 @@ class HeapFile<T : Record<T>> {
      */
 
     fun add(record: T): Int {
-        val currentBlock = getBlock(getAddress())
-        currentBlock.add(record)
-        emptyBlockAddresses.remove(currentBlock.addressInFile)
-        val addressInHeapFile = currentBlock.addressInFile
-        heapFile.writeFrom(currentBlock.addressInFile, currentBlock.toByteArray())
+        val emptyAddress = getAddress()
+        val heapBlock    = getBlock(emptyAddress)
+        var success      = heapBlock.add(record)
+        if(success)
+            totalNumberOfRecords++
+        else
+            println("$record has not been added")
+
+        emptyBlockAddresses.remove(heapBlock.addressInFile)
+        val addressInHeapFile = heapBlock.addressInFile
+        heapBlock.writeToFile()
         return addressInHeapFile
     }
 
+
+    private fun Block<T>.writeToFile() = heapFile.writeFrom(addressInFile,toByteArray())
+
     /**
-     * @return returns the very first address of additional block
-     * if the block has additional block address X and the additional
-     * we inserted to was n-th additional block of the original block
+     * @return returns the very first address of additional linearHashBlock
+     * if the linearHashBlock has additional linearHashBlock address X and the additional
+     * we inserted to was n-th additional linearHashBlock of the original linearHashBlock
      * this functions returns X
      */
     @Suppress("UNCHECKED_CAST")
-    fun add(block: Block<T>, record: T): Int {
-        val additionalBlockStartAddress = block.additionalBlockAddress
-        val lastEmptyAdditionalBlockNotFound = true
+    fun add(linearHashBlock: Block<T>, record: T): Int {
+        val additionalBlockStartAddress = linearHashBlock.additionalBlockAddress
 
-        var block = block
-        while(lastEmptyAdditionalBlockNotFound){
-            val blockState = block.additionalBlockState(this)
-            when (blockState) {
-                is AdditionalBlockState.Full<*> -> {
-                    val currentBlock = (blockState.block as Block<T>)
-                    if(currentBlock.contains(record))
-                        return additionalBlockStartAddress
+        if (linearHashBlock.hasAdditionalBlock()) {
+            val additionalBlockNotFound = true
+            var additionalBlock = getBlock(linearHashBlock.additionalBlockAddress)
 
-                    if (currentBlock.hasAdditionalBlock()){
-                        block = getBlock(currentBlock.additionalBlockAddress)
-                    }
-                    else {
-                        currentBlock.additionalBlockAddress = add(record)
-                        heapFile.writeFrom(currentBlock.addressInFile, currentBlock.toByteArray())
+            while(additionalBlockNotFound){
+                if(additionalBlock.contains(record)) return additionalBlockStartAddress
 
+                if (additionalBlock.isFull()) {
+                    if (additionalBlock.hasAdditionalBlock()) {
+                        additionalBlock = getBlock(additionalBlock.additionalBlockAddress)
+                    } else {
+                        additionalBlock.additionalBlockAddress = add(record)
+                        additionalBlock.writeToFile()
                         return additionalBlockStartAddress
                     }
+                } else {
+                    additionalBlock.additionalBlockAddress = add(record)
+                    additionalBlock.writeToFile()
+                    return additionalBlock.additionalBlockAddress
+                }
 
-                }
-                is AdditionalBlockState.NotFull<*> -> {
-                    (blockState.block as Block<T>).add(record)
-                    heapFile.writeFrom(blockState.block.addressInFile, blockState.block.toByteArray())
-                    return additionalBlockStartAddress
-                }
-                is AdditionalBlockState.NotExisting ->  return add(record)
-
-                }
             }
-        throw  IllegalStateException("Record should be added to the last or new additional block")
+        } else {
+            return add(record)
+        }
+        TODO()
     }
 
     fun get(address: Int, record: T) = getBlock(address).data.firstOrNull { it == record }

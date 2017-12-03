@@ -42,7 +42,7 @@ import kotlin.reflect.KClass
 //            writeInt      (data.size)
 //            data
 //                .forEach {
-//                write(it.toBytes())
+//                writeToFile(it.toBytes())
 //            }
 //        }
 //

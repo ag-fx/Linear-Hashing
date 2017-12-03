@@ -14,8 +14,8 @@ class HeapFileBlock<T : Record<T>> : Block<T> {
     override var data           : MutableList<T>
     override var addressInFile  : Int = -1
     override var additionalBlockAddress :Int = -1
-    override val byteSize   : Int get() = recordCount * ofType.byteSize + SizeOfInt * 2
-    override val blockSize  : Int get() = recordCount * ofType.byteSize + SizeOfInt * 2
+    override val byteSize   : Int get() = recordCount * ofType.byteSize + SizeOfInt * 3
+    override val blockSize  : Int get() = recordCount * ofType.byteSize + SizeOfInt * 3
     override var recordCount: Int// get() = data.size
 
     override val ofType: T
@@ -50,6 +50,7 @@ class HeapFileBlock<T : Record<T>> : Block<T> {
     override fun toByteArray() = toBytes {
         writeInt(recordCount)
         writeInt(addressInFile)
+        writeInt(additionalBlockAddress)
         data.forEach {
             write(it.toByteArray())
         }
@@ -60,6 +61,7 @@ class HeapFileBlock<T : Record<T>> : Block<T> {
         val dis = DataInputStream(ByteArrayInputStream(byteArray))
         val recordCount = dis.readInt()
         val addressInFile = dis.readInt()
+        val additionalAddress = dis.readInt()
         val readList = emptyMutableList<T>()
 
         for (i in 0 until recordCount) {
@@ -70,7 +72,7 @@ class HeapFileBlock<T : Record<T>> : Block<T> {
             readList.add(ofType.fromByteArray(bytes))
         }
 
-        return HeapFileBlock(readList, addressInFile, ofType)
+        return HeapFileBlock(readList, addressInFile, ofType).apply { additionalBlockAddress = additionalAddress }
     }
 
     override var validity: Validity = Valid
