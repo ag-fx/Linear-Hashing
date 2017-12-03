@@ -7,6 +7,7 @@ import AbstractData.isValid
 import AbstractData.toBytes
 import LinearHashing.LinearHashFileBlock
 import LinearHashing.LinearHashingFile
+import com.google.common.annotations.VisibleForTesting
 import io.kotlintest.matchers.shouldBe
 import io.kotlintest.matchers.shouldEqual
 import io.kotlintest.specs.StringSpec
@@ -85,7 +86,7 @@ class MyInt(val value: Int) : Record<MyInt> {
 
 class LinearHashingPrednaska : StringSpec({
     val pathToFile = "test_prednaska"
-    val ds = LinearHashingFile(pathToFile = pathToFile, blockCount = 2, numberOfRecordsInBlock = 2, instanceOfType = MyInt(5), maxDensity = 0.8f, numberOfRecordsInAdditionalBlock = 1)
+    val ds = LinearHashingFile(pathToFile = pathToFile, blockCount = 2, numberOfRecordsInBlock = 2, instanceOfType = MyInt(5), maxDensity = 0.8, numberOfRecordsInAdditionalBlock = 1)
     val invalid = MyInt(5).apply { validity=Invalid }
     val scope = "scope"
 
@@ -150,27 +151,32 @@ class LinearHashingPrednaska : StringSpec({
 
     "second item to be added in additional block"{
         val t = MyInt(13)
+        val d = MyInt(39)
+        val g = MyInt(16)
 
         with(ds) {
             add(18)
             add(27)
             add(29)
             add(28)
-            add(39)
         }
+        ds.add(d)
         ds.add(t)
+        ds.add(g)
 
 
         val b1 = listOf(MyInt(28), invalid)
         val b2 = listOf(MyInt(27), MyInt(29))
         val b3 = listOf(MyInt(18), invalid)
+        println(ds.currentDensity)
         println(ds.allBlocksInFile())
         println( ds.additionalFile.allBlocksInFile())
         ds.additionalFile.allBlocksInFile() shouldBe listOf(listOf(MyInt(39)), listOf(MyInt(13)))
 
     }
-
 })
 
 
 inline fun LinearHashingFile<MyInt>.add(int: Int) = add(MyInt(int))
+
+data class Test(@VisibleForTesting private val safas:Int)

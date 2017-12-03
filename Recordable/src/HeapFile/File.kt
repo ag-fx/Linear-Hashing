@@ -22,7 +22,17 @@ class HeapFile<T : Record<T>> {
         this.blockRecordCount = 0
     }
 
+/*
+when(daco){
+ full ->
+   when(niec){
+    additonalExists
+       full
+       notExists
 
+   }
+}
+ */
     /**
      * @return returns address of the block that records has been inserted to
      */
@@ -113,5 +123,23 @@ class HeapFile<T : Record<T>> {
 
     fun allRecordsInFile() = allBlocksInFile().flatten()
     fun allocateBlock(): Int = getAddress()
+
+    fun getAdditionalBlocks(additionalBlockAddress: Int): List<List<T>> {
+        if(additionalBlockAddress== NoAdditionalBlockAddress ) return emptyList()
+        var additionalBlockAddress = additionalBlockAddress
+        val foundRecords = emptyMutableList<List<T>>()
+        val lastNotFound = true
+        while (lastNotFound) {
+            val block = getBlock(additionalBlockAddress)
+            if (block.hasAdditionalBlock()) {
+                foundRecords.add(block.data)
+                additionalBlockAddress = block.additionalBlockAddress
+            } else {
+                foundRecords.add(block.data)
+                return foundRecords
+            }
+        }
+        throw IllegalStateException("this should not end up here")
+    }
 
 }

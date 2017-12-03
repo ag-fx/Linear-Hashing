@@ -24,10 +24,10 @@ fun DataInputStream.readString(maxStringSize: Int): String {
 }
 
 fun DataOutputStream.writeValidity(validity: Validity) = writeInt(validity.value)
-fun DataInputStream.readValidity() = readInt().validityValue()
+fun DataInputStream .readValidity() = readInt().validityValue()
 
 fun DataOutputStream.writeDate(date: Date) = writeLong(date.time)
-fun DataInputStream.readDate() = Date(readLong())
+fun DataInputStream .readDate() = Date(readLong())
 
 fun Int.validityValue()  = if(this==1) Valid else if (this==2) Invalid else throw IllegalArgumentException("Validitiy is either ${Valid.value} or ${Invalid.value}")
 
