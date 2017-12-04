@@ -31,7 +31,7 @@ class LinearHashingFile<T : Record<T>> {
         blockCount: Int = 4,
         minDensity: Double = 0.0,
         maxDensity: Double = 0.75,
-        suffix: String = "bin") {
+        suffix: String = "uds") {
             this.pathToFile             = "$pathToFile.$suffix"
             this.pathToAdditionalFile   = "${pathToFile}_additionalFile.$suffix"
             this.instanceOfType         = instanceOfType
@@ -114,6 +114,7 @@ class LinearHashingFile<T : Record<T>> {
             if (actualSplitAddress / block.byteSize >= getFirstHashModulo()) {
                 actualSplitAddress = 0
                 currentLevel++
+                split(record)
             }
             return true
         }
@@ -128,32 +129,28 @@ class LinearHashingFile<T : Record<T>> {
         val addressOfNewBlockInFile = actualSplitAddress + getFirstHashModulo() * blockByteSize
         file.allocate(numberOfBlocks = 1, startAddressInFile = addressOfNewBlockInFile)
 
-        val newBlock   = getBlock(addressOfNewBlockInFile / blockByteSize)
-        val splitBlock = getBlock(actualSplitAddress/blockByteSize).apply { add(recordToAdd) }
-        val additionalBlocks  =  splitBlock.getAdditionalBlocks()
-        val additionalRecords =  additionalBlocks.flatten().reversed()
-        println(additionalBlocks )
-        val recordsToMove =  (additionalRecords + splitBlock.data)
-            .filter { it.isValid() }
-            .filter { it.hash.getSecondHash() != actualSplitAddress/blockByteSize }
-            .reversed()
-        val recordsThatStayed = ((additionalRecords + splitBlock.data) - recordsToMove).asReversed()
+        val newBlock          = getBlock(addressOfNewBlockInFile / blockByteSize)
+        val splitBlock        = getBlock(actualSplitAddress / blockByteSize).apply { add(recordToAdd) }
+        val additionalBlocks  = splitBlock.getAdditionalBlocks(true)
+        val additionalRecords = additionalBlocks.flatten().reversed()
 
+        val recordsToMove = (additionalRecords + splitBlock.data)
+            .filter (Serializable<T>::isValid)
+            .filter { it.hash.getSecondHash() != actualSplitAddress / blockByteSize }
+            .reversed()
+
+        val recordsThatStayed = ((additionalRecords + splitBlock.data) - recordsToMove).asReversed()
+        actualRecordsCount+=additionalRecords.size
         recordsToMove.forEach {
             newBlock.add(it)
         }
-        val block = LinearHashFileBlock(blockSize= numberOfRecordsInBlock,ofType = instanceOfType,addressInFile = splitBlock.addressInFile)
+        val block = LinearHashFileBlock(blockSize = numberOfRecordsInBlock, ofType = instanceOfType, addressInFile = splitBlock.addressInFile)
         recordsThatStayed.forEach { block.add(it) }
         write(newBlock)
-
-        recordsToMove.forEach {
-            it.invalidate()
-        }
-        //so valid values are first :-)
-        splitBlock.data.sortBy { it.validity }
         actualBlockCount++
+
         write(block)
-        //TODO invalidate shit in additional blocks
+
     }
 
     fun get(record :T): T? = getBlock(record).get(record)
@@ -192,7 +189,7 @@ class LinearHashingFile<T : Record<T>> {
 
     fun write(block: Block<T>) =  file.writeFrom(block.addressInFile, block.toByteArray())
 
-    private fun Block<T>.getAdditionalBlocks() : List<List<T>> = additionalFile.getAdditionalBlocks(this.additionalBlockAddress)
+    private fun Block<T>.getAdditionalBlocks(invalidateThem :Boolean = false) : List<List<T>> = additionalFile.getAdditionalBlocks(this.additionalBlockAddress,invalidateThem)
 
 
 }

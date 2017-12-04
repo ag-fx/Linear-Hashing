@@ -163,6 +163,8 @@ class LinearHashingPrednaska : StringSpec({
         ds.add(d)
         ds.add(t)
         ds.add(g)
+        ds.add(MyInt(51))
+        ds.add(MyInt(19))
 
 
         val b1 = listOf(MyInt(28), invalid)

@@ -101,3 +101,5 @@ hs_err_pid*
 
 # .nfs files are created when an open heapFile is removed but is still being accessed
 .nfs*
+# binary files
+*.uds

@@ -38,7 +38,7 @@ class HeapFileBlock<T : Record<T>> : Block<T> {
         if(numberOfRecordsInBlock <= 0) throw IllegalArgumentException("Number of records in block has to be bigger than 0")
     }
 
-    constructor(toCopy : HeapFileBlock<T>){
+    private constructor(toCopy : HeapFileBlock<T>){
         this.data = toCopy.data
         this.addressInFile = toCopy.addressInFile
         this.recordCount = toCopy.recordCount
