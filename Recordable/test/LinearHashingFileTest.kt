@@ -78,12 +78,12 @@ class MyInt(val value: Int) : Record<MyInt> {
     override fun equals(other: Any?): Boolean {
         if(other !is MyInt) return false
         if(other.isInvalid() && this.isInvalid()) return true
-        if(other.value == this.value) return true
+        if(other.hash == this.hash) return true
         return false
     }
 
 }
-
+enum class Operation(value:Int){Insert(1),Find(2)}
 class LinearHashingPrednaska : StringSpec({
     val pathToFile = "test_prednaska"
     val ds = LinearHashingFile(pathToFile = pathToFile, blockCount = 2, numberOfRecordsInBlock = 2, instanceOfType = MyInt(5), maxDensity = 0.8, numberOfRecordsInAdditionalBlock = 1)
@@ -149,7 +149,8 @@ class LinearHashingPrednaska : StringSpec({
 
 */
 
-    "second item to be added in additional block"{
+   /* "second item to be added in additional block"{
+
         val t = MyInt(13)
         val d = MyInt(39)
         val g = MyInt(16)
@@ -173,9 +174,13 @@ class LinearHashingPrednaska : StringSpec({
         println(ds.currentDensity)
         println(ds.allBlocksInFile())
         println( ds.additionalFile.allBlocksInFile())
-        ds.additionalFile.allBlocksInFile() shouldBe listOf(listOf(MyInt(39)), listOf(MyInt(13)))
+        val find = 51
+        ds.get(MyInt(find)) shouldBe MyInt(find)
 
     }
+    */
+
+
 })
 
 

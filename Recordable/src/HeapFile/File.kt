@@ -147,6 +147,22 @@ class HeapFile<T : Record<T>> {
         throw IllegalStateException("this should not end up here")
     }
 
+    fun getRecord(additionalBlockAddress: Int, record: T): T? {
+        var additionalBlockAddress = additionalBlockAddress
+        val lastNotFound = true
+        while(lastNotFound){
+            val block = getBlock(additionalBlockAddress)
+            if(block.hasAdditionalBlock()){
+                if(block.contains(record)) return block.get(record)
+                else additionalBlockAddress = block.additionalBlockAddress
+            }
+            if(block.hasNotAdditionalBlock()){
+                return block.get(record)
+            }
+        }
+        return null
+    }
+
 
 }
 

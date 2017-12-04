@@ -72,6 +72,8 @@ class LinearHashingFile<T : Record<T>> {
     private var actualSplitAddress: Int
     private var actualBlockCount :Int
 
+
+
     fun add(record: T): Boolean {
         println("=== === ===")
         println(record)
@@ -109,7 +111,6 @@ class LinearHashingFile<T : Record<T>> {
         if (shouldSplit) {
             println("should split cause densiity is $currentDensity")
             split(record)
-            actualSplitAddress += block.byteSize
 
             if (actualSplitAddress / block.byteSize >= getFirstHashModulo()) {
                 actualSplitAddress = 0
@@ -150,10 +151,20 @@ class LinearHashingFile<T : Record<T>> {
         actualBlockCount++
 
         write(block)
+        actualSplitAddress += block.byteSize
 
     }
 
-    fun get(record :T): T? = getBlock(record).get(record)
+    fun get(record :T): T? {
+        val blockOfRecord = getBlock(record)
+
+        when{
+            blockOfRecord.contains(record) -> return blockOfRecord.get(record)
+            blockOfRecord.hasNotAdditionalBlock() -> return null
+            else -> return blockOfRecord.getRecordFromAdditional(record)
+        }
+
+    }
 
     private fun getFirstHashModulo()  = (numberOfBlocks * pow(2.toDouble(), currentLevel    .toDouble())).toInt()
     private fun getSecondHashModulo() = (numberOfBlocks * pow(2.toDouble(), currentLevel + 1.toDouble())).toInt()
@@ -165,6 +176,7 @@ class LinearHashingFile<T : Record<T>> {
 
     private fun Int.address() : Int {
         val first = getFirstHash()
+        val testOnly = getSecondHash()
         if (first < actualSplitAddress / blockByteSize)
              return getSecondHash()
 
@@ -190,8 +202,10 @@ class LinearHashingFile<T : Record<T>> {
     fun write(block: Block<T>) =  file.writeFrom(block.addressInFile, block.toByteArray())
 
     private fun Block<T>.getAdditionalBlocks(invalidateThem :Boolean = false) : List<List<T>> = additionalFile.getAdditionalBlocks(this.additionalBlockAddress,invalidateThem)
+    private fun Block<T>.getRecordFromAdditional(record: T): T?  = additionalFile.getRecord(additionalBlockAddress,record)
 
 
 }
+
 
 
