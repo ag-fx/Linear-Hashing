@@ -123,6 +123,7 @@ class LinearHashingFile<T : Record<T>> {
 
     private val shouldSplit get() = currentDensity > maxDensity
 
+    //I'm reversing lists in the function so records are in the same order as they are in the papers from Mr.Jankovic
     private fun split(recordToAdd: T) {
         val addressOfNewBlockInFile = actualSplitAddress + getFirstHashModulo() * blockByteSize
         file.allocate(numberOfBlocks = 1, startAddressInFile = addressOfNewBlockInFile)
@@ -135,13 +136,14 @@ class LinearHashingFile<T : Record<T>> {
         val recordsToMove =  (additionalRecords + splitBlock.data)
             .filter { it.isValid() }
             .filter { it.hash.getSecondHash() != actualSplitAddress/blockByteSize }
+            .reversed()
         val recordsThatStayed = ((additionalRecords + splitBlock.data) - recordsToMove).asReversed()
 
         recordsToMove.forEach {
             newBlock.add(it)
         }
-        val block = LinearHashFileBlock(blockSize= blockByteSize,ofType = instanceOfType,data = recordsThatStayed)
-            .apply { addressInFile = splitBlock.addressInFile }
+        val block = LinearHashFileBlock(blockSize= numberOfRecordsInBlock,ofType = instanceOfType,addressInFile = splitBlock.addressInFile)
+        recordsThatStayed.forEach { block.add(it) }
         write(newBlock)
 
         recordsToMove.forEach {
@@ -151,6 +153,7 @@ class LinearHashingFile<T : Record<T>> {
         splitBlock.data.sortBy { it.validity }
         actualBlockCount++
         write(block)
+        //TODO invalidate shit in additional blocks
     }
 
     fun get(record :T): T? = getBlock(record).get(record)
