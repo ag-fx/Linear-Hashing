@@ -107,31 +107,32 @@ class LinearHashingFile<T : Record<T>> {
         if(block.isFull()) throw IllegalArgumentException("Block is full")
 
         block.add(record)
+        write(block)
+
         actualRecordsCount++
-        if (shouldSplit) {
+        while (shouldSplit) {
             println("should split cause densiity is $currentDensity")
-            split(record)
+            split()
 
             if (actualSplitAddress / block.byteSize >= getFirstHashModulo()) {
                 actualSplitAddress = 0
                 currentLevel++
-                split(record)
+                split()
             }
-            return true
+
         }
-        write(block)
         return true
     }
 
     private val shouldSplit get() = currentDensity > maxDensity
 
     //I'm reversing lists in the function so records are in the same order as they are in the papers from Mr.Jankovic
-    private fun split(recordToAdd: T) {
+    private fun split() {
         val addressOfNewBlockInFile = actualSplitAddress + getFirstHashModulo() * blockByteSize
         file.allocate(numberOfBlocks = 1, startAddressInFile = addressOfNewBlockInFile)
 
         val newBlock          = getBlock(addressOfNewBlockInFile / blockByteSize)
-        val splitBlock        = getBlock(actualSplitAddress / blockByteSize).apply { add(recordToAdd) }
+        val splitBlock        = getBlock(actualSplitAddress / blockByteSize)
         val additionalBlocks  = splitBlock.getAdditionalBlocks(true)
         val additionalRecords = additionalBlocks.flatten().reversed()
 

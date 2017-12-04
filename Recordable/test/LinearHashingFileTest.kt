@@ -149,7 +149,8 @@ class LinearHashingPrednaska : StringSpec({
 
 */
 
-   /* "second item to be added in additional block"{
+/*
+    "second item to be added in additional block"{
 
         val t = MyInt(13)
         val d = MyInt(39)
@@ -178,7 +179,21 @@ class LinearHashingPrednaska : StringSpec({
         ds.get(MyInt(find)) shouldBe MyInt(find)
 
     }
-    */
+
+*/
+    "tes"{
+        val r = Random(15)
+        val toAdd = (1..500).map { MyInt(r.nextInt(5000)) }
+        var foundAll=true
+        toAdd.forEach {
+            ds.add(it)
+            if(ds.get(it)!=it) {
+                println("$it ERROR===========")
+                foundAll=false
+            }
+        }
+        foundAll shouldBe true
+    }
 
 
 })
