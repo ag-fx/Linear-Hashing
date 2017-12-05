@@ -75,8 +75,6 @@ class LinearHashingFile<T : Record<T>> {
 
 
     fun add(record: T): Boolean {
-
-      //  println("====$record==== ")
         val block = getBlock(record)
         if(block.contains(record)) return false
         val result =  when (block.state()) {
@@ -100,11 +98,6 @@ class LinearHashingFile<T : Record<T>> {
     }
 
     fun splitCheck() {
-        val density = currentDensity
-        val additionalRecords = additionalRecordsCount
-        val actualBlocks = actualBlockCount
-        val thisRecrods = actualRecordsCount
-
         while (shouldSplit) {
             split()
             if (actualSplitAddress / block.byteSize >= getFirstHashModulo()) {
@@ -128,7 +121,6 @@ class LinearHashingFile<T : Record<T>> {
 
     //I'm reversing lists in the function so records are in the same order as they are in the papers from Mr.Jankovic
     private fun split() {
-        println("splittin")
         val addressOfNewBlockInFile = actualSplitAddress + getFirstHashModulo() * blockByteSize
         file.allocate(numberOfBlocks = 1, startAddressInFile = addressOfNewBlockInFile)
 
@@ -143,7 +135,6 @@ class LinearHashingFile<T : Record<T>> {
             .reversed()
 
         val recordsThatStayed = ((additionalRecords + splitBlock.data) - recordsToMove).asReversed()
-       //actualRecordsCount+=recordsToMove.size//additionalRecords.size
         recordsToMove.forEach {
             newBlock.add(it)
             if(additionalRecords.contains(it)) actualRecordsCount++

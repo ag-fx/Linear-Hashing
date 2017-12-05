@@ -15,6 +15,7 @@ import junit.framework.TestCase
 import record.Validity
 import record.Validity.Invalid
 import record.Validity.Valid
+import record.emptyMutableList
 import record.readValidity
 import record.writeValidity
 import java.io.ByteArrayInputStream
@@ -208,30 +209,16 @@ class LinearHashingPrednaska : StringSpec({
     "tes"{
         val r = Random(15)
         val toAdd = (1..500).map { MyInt(r.nextInt(5000)) }.distinctBy { it.value }
-//        val toAdd = listOf(1,2,3,5,8,13,21,34,55).map { MyInt(it) }//.filter { it.value!=5 }
         var foundAll=true
         toAdd.forEachIndexed {index,number ->
             ds.add(number)
-            println("---------")
-            println(ds.allBlocksInFile())
-            println(ds.additionalFile.allBlocksInFile())
-
         }
-   //     println(ds.get(MyInt((2984))))
 
-        //toAdd.forEach {
-//        val toGet = MyInt(4934)
-//            if(ds.get(toGet) != toGet){
-//                foundAll=false
-//                println("$toGet is problem")
-//            }else{
-//                println("$toGet found as ${ds.get(toGet)}")
-//            }
-        //}
-        println(toAdd.sortedBy { it.value })
-        val all = (ds.additionalFile.allBlocksInFile().flatten()  + ds.allBlocksInFile().flatten()).filter { it.isValid() }.sortedBy { it.value }
-        println(all)
-        foundAll shouldBe true
+        val found = emptyMutableList<MyInt?>()
+        toAdd.reversed().forEach {
+            found.add(ds.get(it))
+        }
+        found.contains(null) shouldBe false
     }.config(enabled = true)
 
 
