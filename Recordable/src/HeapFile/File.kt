@@ -155,7 +155,7 @@ class HeapFile<T : Record<T>> {
             if(block.hasAdditionalBlock()){
                 if(block.contains(record)) return block.get(record)
                 else additionalBlockAddress = block.additionalBlockAddress
-            }
+            }else
             if(block.hasNotAdditionalBlock()){
                 return block.get(record)
             }

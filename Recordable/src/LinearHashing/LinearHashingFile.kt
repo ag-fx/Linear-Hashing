@@ -75,17 +75,14 @@ class LinearHashingFile<T : Record<T>> {
 
 
     fun add(record: T): Boolean {
-        println("=== === ===")
-        println(record)
-        println(record.address)
 
+      //  println("====$record==== ")
         val block = getBlock(record)
         if(block.contains(record)) return false
         val result =  when (block.state()) {
             Full    -> block.addToAdditionalFile(record)
             NotFull -> addToNotFullBlock(block, record)
         }
-        println("#blocks $numberOfBlocks, additional count $additionalRecordsCount, #record $actualRecordsCount")
         return result
     }
 
@@ -96,31 +93,34 @@ class LinearHashingFile<T : Record<T>> {
             val t = (this as LinearHashFileBlock<T>).copy()
             t.additionalBlockAddress = address
             write(t)
-            if (shouldSplit) {
-                println("i should split while inseritng $record")
-            }
+            splitCheck()
         }
+        splitCheck()
         return true
     }
 
-    private fun addToNotFullBlock(block: Block<T>, record: T) : Boolean {
-        if(block.isFull()) throw IllegalArgumentException("Block is full")
+    fun splitCheck() {
+        val density = currentDensity
+        val additionalRecords = additionalRecordsCount
+        val actualBlocks = actualBlockCount
+        val thisRecrods = actualRecordsCount
 
-        block.add(record)
-        write(block)
-
-        actualRecordsCount++
         while (shouldSplit) {
-            println("should split cause densiity is $currentDensity")
             split()
-
             if (actualSplitAddress / block.byteSize >= getFirstHashModulo()) {
                 actualSplitAddress = 0
                 currentLevel++
                 split()
             }
-
         }
+    }
+    private fun addToNotFullBlock(block: Block<T>, record: T) : Boolean {
+        if(block.isFull()) throw IllegalArgumentException("Block is full")
+
+        block.add(record)
+        write(block)
+        actualRecordsCount++
+        splitCheck()
         return true
     }
 
@@ -128,6 +128,7 @@ class LinearHashingFile<T : Record<T>> {
 
     //I'm reversing lists in the function so records are in the same order as they are in the papers from Mr.Jankovic
     private fun split() {
+        println("splittin")
         val addressOfNewBlockInFile = actualSplitAddress + getFirstHashModulo() * blockByteSize
         file.allocate(numberOfBlocks = 1, startAddressInFile = addressOfNewBlockInFile)
 
@@ -142,12 +143,24 @@ class LinearHashingFile<T : Record<T>> {
             .reversed()
 
         val recordsThatStayed = ((additionalRecords + splitBlock.data) - recordsToMove).asReversed()
-        actualRecordsCount+=additionalRecords.size
+       //actualRecordsCount+=recordsToMove.size//additionalRecords.size
         recordsToMove.forEach {
             newBlock.add(it)
+            if(additionalRecords.contains(it)) actualRecordsCount++
+        }
+        val recordsToAddToAdditonalForNewBlock = recordsToMove - newBlock.data
+        recordsToAddToAdditonalForNewBlock.forEach {
+            newBlock.additionalBlockAddress = additionalFile.add(newBlock,it)
         }
         val block = LinearHashFileBlock(blockSize = numberOfRecordsInBlock, ofType = instanceOfType, addressInFile = splitBlock.addressInFile)
-        recordsThatStayed.forEach { block.add(it) }
+        recordsThatStayed.forEach {
+            block.add(it)
+        }
+
+        val recordsToAddToAdditionalFile = recordsThatStayed - block.data
+        recordsToAddToAdditionalFile.forEach {
+            block.additionalBlockAddress= additionalFile.add(block,it)
+        }
         write(newBlock)
         actualBlockCount++
 

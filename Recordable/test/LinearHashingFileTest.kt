@@ -78,7 +78,7 @@ class MyInt(val value: Int) : Record<MyInt> {
     override fun equals(other: Any?): Boolean {
         if(other !is MyInt) return false
         if(other.isInvalid() && this.isInvalid()) return true
-        if(other.hash == this.hash) return true
+        if(other.value == this.value && this.isValid() && other.isValid()) return true
         return false
     }
 
@@ -149,51 +149,90 @@ class LinearHashingPrednaska : StringSpec({
 
 */
 
-/*
+
     "second item to be added in additional block"{
 
-        val t = MyInt(13)
-        val d = MyInt(39)
+        val a = MyInt(27)
+        val b = MyInt(18)
+        val c = MyInt(29)
+        val d = MyInt(28)
+        val e = MyInt(39)
+        val f = MyInt(13)
         val g = MyInt(16)
-
+        val h = MyInt(51)
+        val i = MyInt(19)
         with(ds) {
-            add(18)
-            add(27)
-            add(29)
-            add(28)
+            add(a)
+            add(b)
+            add(c)
+            add(d)
+            add(e)
+            add(f)
+            add(g)
+            add(h)
+            add(i)
         }
-        ds.add(d)
-        ds.add(t)
-        ds.add(g)
-        ds.add(MyInt(51))
-        ds.add(MyInt(19))
 
+        val b0 = listOf(MyInt(16), invalid)
+        val b1 = listOf(MyInt(29), MyInt(13))
+        val b2 = listOf(MyInt(18), invalid)
+        val b3 = listOf(MyInt(27), MyInt(39))
+        val b4 = listOf(MyInt(28), invalid)
 
-        val b1 = listOf(MyInt(28), invalid)
-        val b2 = listOf(MyInt(27), MyInt(29))
-        val b3 = listOf(MyInt(18), invalid)
-        println(ds.currentDensity)
+        val blocks = listOf(b0,b1,b2,b3,b4)
+
+        val a0 = listOf(MyInt(51))
+        val a1 = listOf(MyInt(19))
+
+        val addit = listOf(a0,a1)
+
+        println(blocks)
         println(ds.allBlocksInFile())
-        println( ds.additionalFile.allBlocksInFile())
-        val find = 51
-        ds.get(MyInt(find)) shouldBe MyInt(find)
+        println("=====================")
+        println(addit)
+        println(ds.additionalFile.allBlocksInFile())
+        ds.get(a)
+        ds.get(b)
+        ds.get(c)
+        ds.get(d)
+        ds.get(e)
+        ds.get(f)
+        ds.get(g)
+        ds.get(h)
+        ds.get(i)
+        addit  shouldBe  ds.additionalFile.allBlocksInFile()
+        blocks shouldBe  ds.allBlocksInFile()
+    }.config(enabled = false )
 
-    }
 
-*/
     "tes"{
         val r = Random(15)
-        val toAdd = (1..500).map { MyInt(r.nextInt(5000)) }
+        val toAdd = (1..500).map { MyInt(r.nextInt(5000)) }.distinctBy { it.value }
+//        val toAdd = listOf(1,2,3,5,8,13,21,34,55).map { MyInt(it) }//.filter { it.value!=5 }
         var foundAll=true
-        toAdd.forEach {
-            ds.add(it)
-            if(ds.get(it)!=it) {
-                println("$it ERROR===========")
-                foundAll=false
-            }
+        toAdd.forEachIndexed {index,number ->
+            ds.add(number)
+            println("---------")
+            println(ds.allBlocksInFile())
+            println(ds.additionalFile.allBlocksInFile())
+
         }
+   //     println(ds.get(MyInt((2984))))
+
+        //toAdd.forEach {
+//        val toGet = MyInt(4934)
+//            if(ds.get(toGet) != toGet){
+//                foundAll=false
+//                println("$toGet is problem")
+//            }else{
+//                println("$toGet found as ${ds.get(toGet)}")
+//            }
+        //}
+        println(toAdd.sortedBy { it.value })
+        val all = (ds.additionalFile.allBlocksInFile().flatten()  + ds.allBlocksInFile().flatten()).filter { it.isValid() }.sortedBy { it.value }
+        println(all)
         foundAll shouldBe true
-    }
+    }.config(enabled = true)
 
 
 })
