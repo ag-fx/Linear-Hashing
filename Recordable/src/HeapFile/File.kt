@@ -14,6 +14,7 @@ class HeapFile<T : Record<T>> {
     private val instanceOfRecord: T
     private val instanceOfBlock: HeapFileBlock<T>
     var totalNumberOfRecords = 0
+    var totalNumberOfBlocks = 0
 
     val emptyBlockAddresses  = emptyMutableList<Int>()
 
@@ -75,6 +76,7 @@ class HeapFile<T : Record<T>> {
                 } else {
                     val success = additionalBlock.add(record)
                     if (success) {
+                        totalNumberOfRecords++
                         additionalBlock.writeToFile()
                         return AddResult.RecordAddedToExistingBlock
                     } else {
@@ -104,6 +106,7 @@ class HeapFile<T : Record<T>> {
             newBlock.addressInFile = lastPositionInFile
             heapFile.writeFrom(position = lastPositionInFile, byteArray = newBlock.toByteArray())
             emptyBlockAddresses.add(lastPositionInFile)
+            totalNumberOfBlocks++
             /*return*/ lastPositionInFile
         }
 
@@ -129,24 +132,30 @@ class HeapFile<T : Record<T>> {
         var additionalBlockAddress = additionalBlockAddress
         val foundRecords = emptyMutableList<List<T>>()
         val lastNotFound = true
+        var deleteCount = 0
         while (lastNotFound) {
             val block = getBlock(additionalBlockAddress)
             if (block.hasAdditionalBlock()) {
                 foundRecords.add(block.data)
                 additionalBlockAddress = block.additionalBlockAddress
                 if(invalidateThem){
+                    deleteCount += block.data.filter { it.isValid() }.size
                     /*                                               i'm doing this to create a duplicate of object to get rid of reference                                   */
-                    val copy = (block as HeapFileBlock).copy().apply{ data = data.map { x ->  x.toByteArray().let(x::fromByteArray) }.onEach { it.invalidate() ; totalNumberOfRecords-- }.toMutableList()}
+                    val copy = (block as HeapFileBlock).copy().apply{ data = data.map { x ->  x.toByteArray().let(x::fromByteArray) }.onEach { /*if(it.isValid()) totalNumberOfRecords--;*/ it.invalidate()  /*; totalNumberOfRecords-- */ }.toMutableList()}
+                    copy.additionalBlockAddress= NoAdditionalBlockAddress
                     copy.writeToFile()
                     emptyBlockAddresses.add(block.addressInFile) //TODO poratat tie bloky ktore som zmazal
                 }
             } else {
                 foundRecords.add(block.data)
                 if(invalidateThem){
-                    val copy = (block as HeapFileBlock).copy().apply{ data = data.map { x ->  x.toByteArray().let(x::fromByteArray) }.onEach { it.invalidate() ; totalNumberOfRecords--  }.toMutableList()}
+                    deleteCount += block.data.filter { it.isValid() }.size
+                    val copy = (block as HeapFileBlock).copy().apply{ data = data.map { x ->  x.toByteArray().let(x::fromByteArray) }.onEach {/* if(it.isValid()) totalNumberOfRecords--;*/ it.invalidate()  /*; totalNumberOfRecords--*/  }.toMutableList()}
+                    copy.additionalBlockAddress = NoAdditionalBlockAddress
                     copy.writeToFile()
                     emptyBlockAddresses.add(block.addressInFile)
                     tryTrim()
+                    totalNumberOfRecords -= deleteCount
                 }
 
                 return foundRecords
@@ -171,53 +180,6 @@ class HeapFile<T : Record<T>> {
         return null
     }
 
-    fun deleteAndShake(additionalBlockAddress: Int, record: T) : Boolean{
-        val partlyEmptyBlocks   = emptyMutableList<Block<T>>()
-        val readBlocks          = emptyMutableList<Block<T>>()
-        var block               = getBlock(additionalBlockAddress)
-
-        while (block.hasAdditionalBlock()) {
-            readBlocks.add(block)
-
-            if (block.contains(record)) {
-                block.delete(record)
-            }
-
-            if(block.isNotFull())
-                partlyEmptyBlocks.add(block)
-
-            block = getBlock(block.additionalBlockAddress)
-        }
-
-        val lastBlock                    = readBlocks.pop()
-        val lastBlockData                = LinkedList(lastBlock.data)
-        val blockThatPointsToLastBlock   = readBlocks.pop()
-        var loopSecurity                 = 0
-        var pointerToLastBlockNotRemoved = true
-
-        while(lastBlockData.isNotEmpty()){
-            if(loopSecurity++ > 2000) throw IllegalStateException("I'm probably stuck in a a loop")
-            var partlyEmptyBlock = partlyEmptyBlocks.pop()
-            while(partlyEmptyBlock.isNotFull()){
-                partlyEmptyBlock.add(lastBlockData.pop())
-            }
-
-            //in case that this block points to the last block, I can clear the pointer at once
-            if (partlyEmptyBlock.addressInFile == blockThatPointsToLastBlock.addressInFile){
-                partlyEmptyBlock.additionalBlockAddress = NoAdditionalBlockAddress
-                pointerToLastBlockNotRemoved = false
-            }
-            partlyEmptyBlock.writeToFile()
-        }
-
-        if(pointerToLastBlockNotRemoved){
-            blockThatPointsToLastBlock.additionalBlockAddress = NoAdditionalBlockAddress
-            blockThatPointsToLastBlock.writeToFile()
-        }
-        emptyBlockAddresses.add(lastBlock.addressInFile)
-        tryTrim()
-        return true
-    }
 
     fun delete(additionalBlockAddress: Int, record: T): Boolean {
         var additionalBlockAddress = additionalBlockAddress
@@ -226,7 +188,9 @@ class HeapFile<T : Record<T>> {
             val block = getBlock(additionalBlockAddress)
             if(block.contains(record)){
                 block.delete(record)
+                totalNumberOfRecords--
                 block.writeToFile()
+                tryTrim()
                 return true
             }
 
@@ -250,18 +214,23 @@ class HeapFile<T : Record<T>> {
         }
 
     }
-
     private fun tryTrim() {
         while(heapFile.size() > 0) {
-
             val lastBlock = getBlock((heapFile.size() - instanceOfBlock.byteSize).toInt())
             if(lastBlock.isEmpty()){
                 heapFile.shrink(instanceOfBlock.byteSize)
                 emptyBlockAddresses.remove(lastBlock.addressInFile)
+                totalNumberOfBlocks--
             }
             else
                 return
         }
+    }
+
+    fun shake(additionalBlockAddress: Int) {
+        val partlyEmptyBlocks = emptyMutableList<Block<T>>()
+        val readBlocks        = emptyMutableList<Block<T>>()
+
     }
 
 }

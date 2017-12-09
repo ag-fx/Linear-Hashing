@@ -88,7 +88,7 @@ class MyInt(val value: Int) : Record<MyInt> {
 enum class Operation(value:Int){Insert(1),Find(2)}
 class LinearHashingPrednaska : StringSpec({
     val pathToFile = "test_prednaska"
-    val numberOfRecordsInAdditionalBlock = 4
+    val numberOfRecordsInAdditionalBlock = 3
     val ds = LinearHashingFile(pathToFile = pathToFile, blockCount = 2, numberOfRecordsInBlock = 2, instanceOfType = MyInt(5), maxDensity = 0.8, numberOfRecordsInAdditionalBlock = numberOfRecordsInAdditionalBlock)
     val invalid = MyInt(5).apply { validity = Invalid }
     val scope = "scope"
@@ -198,6 +198,7 @@ class LinearHashingPrednaska : StringSpec({
         val g = MyInt(16)
         val h = MyInt(51)
         val i = MyInt(19)
+        listOf(a,b,c,d,e,f,g,h,i)
         with(ds) {
             add(a)
             add(b)
@@ -233,12 +234,19 @@ class LinearHashingPrednaska : StringSpec({
         ds.get(i)
         println(ds.allBlocksInFile())
         println(ds.additionalFile.allBlocksInFile())
+        println("""
+            ${ds.actualRecordsCount} ...mal by byt  7
+            ${ds.actualBlockCount}   ...mal by byt  5
+            --------
+            ${ds.additionalRecordsCount} ... mal by byt 2
+            ${ds.additionalBlockCount}   ... mal by byt 1
+           """.trimIndent())
     }.config(enabled = false)
 
     "insert and find all"{
-        val r = Random(5000)
+        val r = Random( )
         val numberOfRecords = 10_000
-        val toAdd = (1..numberOfRecords).map { MyInt(Math.abs(r.nextInt())) }//.distinctBy { it.value }
+        val toAdd = (1..numberOfRecords).map { MyInt(Math.abs(r.nextInt())) }.distinctBy { it.value }
         var foundAll = true
         toAdd.forEachIndexed { index, number ->
             ds.add(number)
@@ -254,6 +262,8 @@ class LinearHashingPrednaska : StringSpec({
             if (result == null)
                 foundNull = true
         }
+        println(toAdd.sortedBy { it.value })
+        println((ds.allRecordsInFile() + ds.additionalFile.allRecordsInFile()).filter{it.isValid()}.sortedBy { it.value })
 
         foundNull shouldBe false
     }.config(enabled = false)
@@ -263,19 +273,29 @@ class LinearHashingPrednaska : StringSpec({
         val r = Random(5000)
         val numberOfRecords = 5_000 * 2
         val toAdd = (1..numberOfRecords).map { MyInt(Math.abs(r.nextInt())) }//.distinctBy { it.value }
-        var foundAll = true
         toAdd.forEach{
             ds.add(it)
         }
+
 
         toAdd.forEach {
             if(ds.get(it) != it)
                 println("adding was not successful")
         }
+         val toDelete = toAdd.subList(numberOfRecords/8,numberOfRecords/4)
+        toDelete.forEach {
+            ds.delete(it)
+        }
 
-        val toDelete = toAdd.subList(numberOfRecords/8,numberOfRecords/4)
+        println(ds.additionalFile.allBlocksInFile())
 
-    }
+        var foundAll = true
+        (toAdd - toDelete).forEach {
+            if(ds.get(it) != it)
+                foundAll = false
+        }
+        foundAll shouldBe true
+    }.config(enabled = true)
 
 
 })

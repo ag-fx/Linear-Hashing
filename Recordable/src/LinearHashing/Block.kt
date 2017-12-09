@@ -37,6 +37,7 @@ open class LinearHashFileBlock<T: Record<T>> : Block<T> {
 
 
     }
+
     constructor(blockSize: Int,ofType: T, data : List<T>){
         this.blockSize      = blockSize
         this.recordCount    = data.size
