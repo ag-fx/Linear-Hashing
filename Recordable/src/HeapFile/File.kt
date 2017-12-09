@@ -3,6 +3,7 @@ package HeapFile
 import AbstractData.*
 import record.emptyMutableList
 import src.ReadWrite
+import java.io.RandomAccessFile
 import java.util.*
 
 class HeapFile<T : Record<T>> {
@@ -14,7 +15,7 @@ class HeapFile<T : Record<T>> {
     private val instanceOfBlock: HeapFileBlock<T>
     var totalNumberOfRecords = 0
 
-    val emptyBlockAddresses       = emptyMutableList<Int>()
+    val emptyBlockAddresses  = emptyMutableList<Int>()
 
     constructor(path: String, instanceOfRecord: T, numberOfRecordsInBlock: Int) {
         this.heapFile         = ReadWrite(path)
@@ -41,6 +42,7 @@ class HeapFile<T : Record<T>> {
         heapBlock.writeToFile()
         return addressInHeapFile
     }
+
 
 
     private fun Block<T>.writeToFile() = heapFile.writeFrom(addressInFile,toByteArray())
@@ -80,12 +82,10 @@ class HeapFile<T : Record<T>> {
         } else {
             return add(record)
         }
-        TODO()
+        throw IllegalStateException("This should not end up here")
     }
 
-    fun get(address: Int, record: T) = getBlock(address).data.firstOrNull { it == record }
-
-    fun getAddress(): Int = if (emptyBlockAddresses.isNotEmpty())
+    private fun getAddress(): Int = if (emptyBlockAddresses.isNotEmpty())
             emptyBlockAddresses.removeFirst()
         else {
             val lastPositionInFile = heapFile.size().toInt()
@@ -113,11 +113,6 @@ class HeapFile<T : Record<T>> {
 
     fun allRecordsInFile() = allBlocksInFile().flatten()
 
-    /***
-     ** @return allocated address
-     */
-    fun allocateBlock(): Int = getAddress()
-
     fun getAdditionalBlocks(additionalBlockAddress: Int, invalidateThem:Boolean = false): List<List<T>> {
         if(additionalBlockAddress== NoAdditionalBlockAddress ) return emptyList()
         var additionalBlockAddress = additionalBlockAddress
@@ -140,7 +135,9 @@ class HeapFile<T : Record<T>> {
                     val copy = (block as HeapFileBlock).copy().apply{ data = data.map { x ->  x.toByteArray().let(x::fromByteArray) }.onEach { it.invalidate() ; totalNumberOfRecords--  }.toMutableList()}
                     copy.writeToFile()
                     emptyBlockAddresses.add(block.addressInFile)
+                    tryTrim()
                 }
+
                 return foundRecords
             }
         }
@@ -163,6 +160,97 @@ class HeapFile<T : Record<T>> {
         return null
     }
 
+    fun deleteAndShake(additionalBlockAddress: Int, record: T) : Boolean{
+        val partlyEmptyBlocks   = emptyMutableList<Block<T>>()
+        val readBlocks          = emptyMutableList<Block<T>>()
+        var block               = getBlock(additionalBlockAddress)
+
+        while (block.hasAdditionalBlock()) {
+            readBlocks.add(block)
+
+            if (block.contains(record)) {
+                block.delete(record)
+            }
+
+            if(block.isNotFull())
+                partlyEmptyBlocks.add(block)
+
+            block = getBlock(block.additionalBlockAddress)
+        }
+
+        val lastBlock                    = readBlocks.pop()
+        val lastBlockData                = LinkedList(lastBlock.data)
+        val blockThatPointsToLastBlock   = readBlocks.pop()
+        var loopSecurity                 = 0
+        var pointerToLastBlockNotRemoved = true
+
+        while(lastBlockData.isNotEmpty()){
+            if(loopSecurity++ > 2000) throw IllegalStateException("I'm probably stuck in a a loop")
+            var partlyEmptyBlock = partlyEmptyBlocks.pop()
+            while(partlyEmptyBlock.isNotFull()){
+                partlyEmptyBlock.add(lastBlockData.pop())
+            }
+
+            //in case that this block points to the last block, I can clear the pointer at once
+            if (partlyEmptyBlock.addressInFile == blockThatPointsToLastBlock.addressInFile){
+                partlyEmptyBlock.additionalBlockAddress = NoAdditionalBlockAddress
+                pointerToLastBlockNotRemoved = false
+            }
+            partlyEmptyBlock.writeToFile()
+        }
+
+        if(pointerToLastBlockNotRemoved){
+            blockThatPointsToLastBlock.additionalBlockAddress = NoAdditionalBlockAddress
+            blockThatPointsToLastBlock.writeToFile()
+        }
+        emptyBlockAddresses.add(lastBlock.addressInFile)
+        tryTrim()
+        return true
+    }
+
+    fun delete(additionalBlockAddress: Int, record: T): Boolean {
+        var additionalBlockAddress = additionalBlockAddress
+        val lastNotFound = true
+        while (lastNotFound) {
+            val block = getBlock(additionalBlockAddress)
+            if(block.contains(record)){
+                block.delete(record)
+                block.writeToFile()
+                return true
+            }
+
+            if (block.hasAdditionalBlock()) {
+                additionalBlockAddress = block.additionalBlockAddress
+            } else {
+                return false
+            }
+        }
+        throw IllegalStateException("this should not end up here")
+    }
+
+    fun getLastBlock(startAddress : Int) : Block<T>{
+        var address = startAddress
+        while(true){
+            val block = getBlock(address)
+            if(block.hasNotAdditionalBlock())
+                return block
+            else
+                address = block.additionalBlockAddress
+        }
+
+    }
+
+    private fun tryTrim() {
+        while(heapFile.size() > 0) {
+
+            val lastBlock = getBlock((heapFile.size() - instanceOfBlock.byteSize).toInt())
+            if(lastBlock.isEmpty()){
+                heapFile.shrink(instanceOfBlock.byteSize)
+                emptyBlockAddresses.remove(lastBlock.addressInFile)
+            }
+            else
+                return
+        }
+    }
 
 }
-

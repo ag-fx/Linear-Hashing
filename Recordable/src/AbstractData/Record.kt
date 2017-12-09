@@ -8,9 +8,11 @@ import record.writeString
 import java.io.ByteArrayOutputStream
 import java.io.DataInputStream
 import java.io.DataOutputStream
+import java.io.RandomAccessFile
+import java.lang.Math.abs
 import java.util.*
 
-interface Record<T> : Serializable<T>{
+interface Record<out T> : Serializable<T>{
     val stringSize : Int
     val hash : Int
         get () = Math.abs(hashCode())
@@ -23,7 +25,6 @@ fun <T:Serializable<T>> Record<T>.invalidate() {
 }
 fun <T:Serializable<T>> Record<T>.validate() {
     validity=Validity.Valid
-
 }
 
 inline fun toBytes(f: DataOutputStream.() -> Unit): ByteArray{
@@ -34,3 +35,5 @@ inline fun toBytes(f: DataOutputStream.() -> Unit): ByteArray{
     }
     return byteOutStream.toByteArray()
 }
+
+fun <T:Record<T>> T.copy()  =this.toByteArray().let { this.fromByteArray(it) }

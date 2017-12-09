@@ -21,6 +21,7 @@ import record.writeValidity
 import java.io.ByteArrayInputStream
 import java.io.DataInputStream
 import java.io.File
+import java.io.Serializable
 import java.util.*
 
 class LinearHashingFileTest : StringSpec({
@@ -38,7 +39,7 @@ class LinearHashingFileTest : StringSpec({
 
     val block = LinearHashFileBlock(blockSize, Person("", "", Date(5)), listOf(joe, john, doe))
 
-    val ds = LinearHashingFile(pathToFile = pathToFile, instanceOfType = ofType, numberOfRecordsInBlock = blockSize, blockCount = 4)
+    val ds = LinearHashingFile(pathToFile = pathToFile, instanceOfType = ofType, numberOfRecordsInBlock = blockSize, blockCount = 4,numberOfRecordsInAdditionalBlock = 2)
 
     "add one record"{
         println(ds.allRecordsInFile())
@@ -87,14 +88,14 @@ class MyInt(val value: Int) : Record<MyInt> {
 enum class Operation(value:Int){Insert(1),Find(2)}
 class LinearHashingPrednaska : StringSpec({
     val pathToFile = "test_prednaska"
-    val ds = LinearHashingFile(pathToFile = pathToFile, blockCount = 2, numberOfRecordsInBlock = 2, instanceOfType = MyInt(5), maxDensity = 0.8, numberOfRecordsInAdditionalBlock = 1)
-    val invalid = MyInt(5).apply { validity=Invalid }
+    val ds = LinearHashingFile(pathToFile = pathToFile, blockCount = 2, numberOfRecordsInBlock = 1, instanceOfType = MyInt(5), maxDensity = 0.8, numberOfRecordsInAdditionalBlock = 1)
+    val invalid = MyInt(5).apply { validity = Invalid }
     val scope = "scope"
 
     "delete"{
-       ds.deleteFiles() shouldBe  true
-     }
-/*
+        ds.deleteFiles() shouldBe true
+    }
+    /*
     "18,27,29"{
         ds.add(18)
         ds.add(27)
@@ -150,7 +151,6 @@ class LinearHashingPrednaska : StringSpec({
 
 */
 
-
     "second item to be added in additional block"{
 
         val a = MyInt(27)
@@ -180,12 +180,12 @@ class LinearHashingPrednaska : StringSpec({
         val b3 = listOf(MyInt(27), MyInt(39))
         val b4 = listOf(MyInt(28), invalid)
 
-        val blocks = listOf(b0,b1,b2,b3,b4)
+        val blocks = listOf(b0, b1, b2, b3, b4)
 
         val a0 = listOf(MyInt(51))
         val a1 = listOf(MyInt(19))
 
-        val addit = listOf(a0,a1)
+        val addit = listOf(a0, a1)
 
         println(blocks)
         println(ds.allBlocksInFile())
@@ -201,24 +201,32 @@ class LinearHashingPrednaska : StringSpec({
         ds.get(g)
         ds.get(h)
         ds.get(i)
-        addit  shouldBe  ds.additionalFile.allBlocksInFile()
-        blocks shouldBe  ds.allBlocksInFile()
-    }.config(enabled = false )
+        addit shouldBe ds.additionalFile.allBlocksInFile()
+        blocks shouldBe ds.allBlocksInFile()
+    }.config(enabled = false)
 
-
-    "tes"{
+    "test"{
         val r = Random(15)
-        val toAdd = (1..500).map { MyInt(r.nextInt(5000)) }.distinctBy { it.value }
-        var foundAll=true
-        toAdd.forEachIndexed {index,number ->
+        val toAdd = (1..10000).map { MyInt(r.nextInt(10000)) }.distinctBy { it.value }
+        var foundAll = true
+        toAdd.forEachIndexed { index, number ->
             ds.add(number)
         }
 
         val found = emptyMutableList<MyInt?>()
+        var foundNull = false
         toAdd.reversed().forEach {
-            found.add(ds.get(it))
+            val result = ds.get(it)
+            found.add(result)
+            if (result == null)
+                foundNull = true
         }
-        found.contains(null) shouldBe false
+        val allRecords = (ds.allRecordsInFile() + ds.additionalFile.allRecordsInFile()).filter(MyInt::isValid).sortedBy { it.value }//.distinctBy { it.value }
+//            println(allRecords)
+//            println(found.sortedBy { it!!.value })
+        ds.additionalFile.allBlocksInFile().last().isEmpty() shouldBe false
+        println(ds.additionalFile.allBlocksInFile())
+        allRecords shouldBe toAdd.sortedBy { it.value }
     }.config(enabled = true)
 
 

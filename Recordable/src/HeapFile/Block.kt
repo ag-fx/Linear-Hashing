@@ -58,10 +58,10 @@ class HeapFileBlock<T : Record<T>> : Block<T> {
 
 
     override fun fromByteArray(byteArray: ByteArray): Block<T> {
-        val dis = DataInputStream(ByteArrayInputStream(byteArray))
-        val recordCount = dis.readInt()
-        val addressInFile = dis.readInt()
-        val additionalAddress = dis.readInt()
+        val dis                         = DataInputStream(ByteArrayInputStream(byteArray))
+        val recordCount                 = dis.readInt()
+        val addressInFile               = dis.readInt()
+        val additionalAddress           = dis.readInt()
         val readList = emptyMutableList<T>()
 
         for (i in 0 until recordCount) {
@@ -72,7 +72,10 @@ class HeapFileBlock<T : Record<T>> : Block<T> {
             readList.add(ofType.fromByteArray(bytes))
         }
 
-        return HeapFileBlock(readList, addressInFile, ofType).apply { additionalBlockAddress = additionalAddress }
+        return HeapFileBlock(readList, addressInFile, ofType).apply {
+            additionalBlockAddress          = additionalAddress
+        }
+
     }
 
     override var validity: Validity = Valid

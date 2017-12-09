@@ -2,7 +2,7 @@ package AbstractData
 
 import record.Validity
 
-interface Serializable<T> {
+interface Serializable<out T> {
     fun toByteArray(): ByteArray
     fun fromByteArray(byteArray: ByteArray): T
     val byteSize: Int

@@ -63,9 +63,8 @@ open class LinearHashFileBlock<T: Record<T>> : Block<T> {
         writeInt(additionalBlockAddress)
         for(i in 0 until blockSize){
             val record = data.getOrNull(i)
-            if(record!=null) {
+            if(record!=null)
                 write(record.toByteArray())
-            }
             else
                 write(ofType.apply { validity = Validity.Invalid }.toByteArray())
         }
@@ -102,9 +101,4 @@ open class LinearHashFileBlock<T: Record<T>> : Block<T> {
         get() = SizeOfValidity + SizeOfInt + SizeOfInt + SizeOfInt + SizeOfInt + (blockSize * ofType.byteSize)
     override var validity: Validity = Validity.Valid
 
-}
-
-class LinearHashFileAdditionalBlock<T:Record<T>>:LinearHashFileBlock<T>{
-    constructor(blockSize:Int, ofType : T,addressInFile :Int = 0)  : super(blockSize, ofType, addressInFile)
-    constructor(blockSize: Int,ofType: T, data : List<T>)          : super(blockSize, ofType, data)
 }

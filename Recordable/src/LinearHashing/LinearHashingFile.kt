@@ -21,8 +21,6 @@ class LinearHashingFile<T : Record<T>> {
     val maxDensity: Double
     internal val additionalFile : HeapFile<T>
 
-
-
     constructor(
         pathToFile: String,
         instanceOfType: T,
@@ -48,11 +46,11 @@ class LinearHashingFile<T : Record<T>> {
             file.allocate(blockCount,firstBlockAddress)
     }
 
-    fun deleteFiles() =
-        File(this.pathToFile).delete() &&
+    internal fun deleteFiles() =
+        File(this.pathToFile)          .delete() &&
         File(this.pathToAdditionalFile).delete()
 
-    fun ReadWrite.allocate(numberOfBlocks: Int, startAddressInFile: Int = size().toInt()) {
+    private fun ReadWrite.allocate(numberOfBlocks: Int, startAddressInFile: Int = size().toInt()) {
         var startAddress = startAddressInFile
         for (i in 0 until numberOfBlocks){
             val emptyBlock = LinearHashFileBlock(numberOfRecordsInBlock, instanceOfType,startAddress)
@@ -62,17 +60,16 @@ class LinearHashingFile<T : Record<T>> {
     }
 
     //currentLevel + actualRecordsCount + actualSplitAddress + additionalRecordsCount = SizeOfInt * 4
-    private val firstBlockAddress      =0// SizeOfInt * 5
-    private val file: ReadWrite
+    private val firstBlockAddress  = 0// SizeOfInt * 5
+    private val file:  ReadWrite
     private var block: LinearHashFileBlock<T>
-    val blockByteSize: Int
-    private var currentLevel           = 0
-    private var actualRecordsCount     = 0
-    private val additionalRecordsCount get() = additionalFile.totalNumberOfRecords
-    private var actualSplitAddress: Int
-    private var actualBlockCount :Int
-
-
+    private var currentLevel       = 0
+    private var actualRecordsCount = 0
+    private val additionalRecordsCount
+        get() = additionalFile.totalNumberOfRecords
+    private var actualSplitAddress  : Int
+    private var actualBlockCount    : Int
+    val blockByteSize               : Int
 
     fun add(record: T): Boolean {
         val block = getBlock(record)
@@ -82,6 +79,29 @@ class LinearHashingFile<T : Record<T>> {
             NotFull -> addToNotFullBlock(block, record)
         }
         return result
+    }
+
+    fun get(record: T): T? {
+        val blockOfRecord = getBlock(record)
+        when{
+            blockOfRecord.contains(record)        -> return blockOfRecord.get(record)
+            blockOfRecord.hasNotAdditionalBlock() -> return null
+            else                                  -> return blockOfRecord.getRecordFromAdditional(record)
+        }
+    }
+
+    fun delete(record: T): Boolean {
+        val block = getBlock(record)
+        when{
+            block.contains(record)          -> return block.delete(record).also{ write(block) }
+            block.hasNotAdditionalBlock()   -> return false
+            else                            -> return block.deleteFromAdditional(record)
+        }
+    }
+
+    private fun Block<T>.deleteFromAdditional(record: T): Boolean {
+        val address = additionalFile.delete(additionalBlockAddress,record)
+        TODO()
     }
 
     private fun Block<T>.addToAdditionalFile(record: T): Boolean {
@@ -97,16 +117,6 @@ class LinearHashingFile<T : Record<T>> {
         return true
     }
 
-    fun splitCheck() {
-        while (shouldSplit) {
-            split()
-            if (actualSplitAddress / block.byteSize >= getFirstHashModulo()) {
-                actualSplitAddress = 0
-                currentLevel++
-                split()
-            }
-        }
-    }
     private fun addToNotFullBlock(block: Block<T>, record: T) : Boolean {
         if(block.isFull()) throw IllegalArgumentException("Block is full")
 
@@ -117,13 +127,10 @@ class LinearHashingFile<T : Record<T>> {
         return true
     }
 
-    private val shouldSplit get() = currentDensity > maxDensity
-
     //I'm reversing lists in the function so records are in the same order as they are in the papers from Mr.Jankovic
     private fun split() {
         val addressOfNewBlockInFile = actualSplitAddress + getFirstHashModulo() * blockByteSize
         file.allocate(numberOfBlocks = 1, startAddressInFile = addressOfNewBlockInFile)
-
         val newBlock          = getBlock(addressOfNewBlockInFile / blockByteSize)
         val splitBlock        = getBlock(actualSplitAddress / blockByteSize)
         val additionalBlocks  = splitBlock.getAdditionalBlocks(true)
@@ -139,8 +146,8 @@ class LinearHashingFile<T : Record<T>> {
             newBlock.add(it)
             if(additionalRecords.contains(it)) actualRecordsCount++
         }
-        val recordsToAddToAdditonalForNewBlock = recordsToMove - newBlock.data
-        recordsToAddToAdditonalForNewBlock.forEach {
+        val recordsToAddToAdditionalForNewBlock = recordsToMove - newBlock.data
+        recordsToAddToAdditionalForNewBlock.forEach {
             newBlock.additionalBlockAddress = additionalFile.add(newBlock,it)
         }
         val block = LinearHashFileBlock(blockSize = numberOfRecordsInBlock, ofType = instanceOfType, addressInFile = splitBlock.addressInFile)
@@ -157,31 +164,33 @@ class LinearHashingFile<T : Record<T>> {
 
         write(block)
         actualSplitAddress += block.byteSize
-
     }
 
-    fun get(record :T): T? {
-        val blockOfRecord = getBlock(record)
-
-        when{
-            blockOfRecord.contains(record) -> return blockOfRecord.get(record)
-            blockOfRecord.hasNotAdditionalBlock() -> return null
-            else -> return blockOfRecord.getRecordFromAdditional(record)
+    private fun splitCheck() {
+        while (shouldSplit) {
+            split()
+            if (actualSplitAddress / block.byteSize >= getFirstHashModulo()) {
+                actualSplitAddress = 0
+                currentLevel++
+                split()
+            }
         }
-
     }
+
+    private val shouldSplit get() = currentDensity > maxDensity
 
     private fun getFirstHashModulo()  = (numberOfBlocks * pow(2.toDouble(), currentLevel    .toDouble())).toInt()
-    private fun getSecondHashModulo() = (numberOfBlocks * pow(2.toDouble(), currentLevel + 1.toDouble())).toInt()
-    private fun Int.getFirstHash()    = this % getFirstHashModulo()  //* numberOfRecordsInBlock + firstBlockAddress
-    private fun Int.getSecondHash()   = this % getSecondHashModulo() //* numberOfRecordsInBlock + firstBlockAddress
-    internal val currentDensity get() = ((actualRecordsCount + additionalRecordsCount).toDouble()) / (actualBlockCount * numberOfRecordsInBlock + additionalRecordsCount).toDouble()
 
-    private val T.address get() = hash.address()
+    private fun getSecondHashModulo() = (numberOfBlocks * pow(2.toDouble(), currentLevel + 1.toDouble())).toInt()
+
+    private fun Int.getFirstHash()    = this % getFirstHashModulo()  //* numberOfRecordsInBlock + firstBlockAddress
+
+    private fun Int.getSecondHash()   = this % getSecondHashModulo() //* numberOfRecordsInBlock + firstBlockAddress
+
+    internal val currentDensity get() = ((actualRecordsCount + additionalRecordsCount).toDouble()) / (actualBlockCount * numberOfRecordsInBlock + additionalRecordsCount).toDouble()
 
     private fun Int.address() : Int {
         val first = getFirstHash()
-        val testOnly = getSecondHash()
         if (first < actualSplitAddress / blockByteSize)
              return getSecondHash()
 
@@ -199,18 +208,15 @@ class LinearHashingFile<T : Record<T>> {
         return blocks.map { it.data }
     }
 
-
-    fun getBlock(address: Int): Block<T> = block.fromByteArray(file.read(blockByteSize, address * blockByteSize))
+    private fun getBlock(address: Int) = block.fromByteArray(file.read(blockByteSize, address * blockByteSize))
 
     private fun getBlock(record: Record<T>) = getBlock(record.hash.address())
 
-    fun write(block: Block<T>) =  file.writeFrom(block.addressInFile, block.toByteArray())
+    private fun write(block: Block<T>) = file.writeFrom(block.addressInFile, block.toByteArray())
 
-    private fun Block<T>.getAdditionalBlocks(invalidateThem :Boolean = false) : List<List<T>> = additionalFile.getAdditionalBlocks(this.additionalBlockAddress,invalidateThem)
-    private fun Block<T>.getRecordFromAdditional(record: T): T?  = additionalFile.getRecord(additionalBlockAddress,record)
+    private fun Block<T>.getAdditionalBlocks(invalidateThem: Boolean = false) = additionalFile.getAdditionalBlocks(this.additionalBlockAddress, invalidateThem)
 
+    private fun Block<T>.getRecordFromAdditional(record: T)                   = additionalFile.getRecord(additionalBlockAddress, record)
 
 }
-
-
 
