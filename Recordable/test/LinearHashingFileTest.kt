@@ -88,7 +88,8 @@ class MyInt(val value: Int) : Record<MyInt> {
 enum class Operation(value:Int){Insert(1),Find(2)}
 class LinearHashingPrednaska : StringSpec({
     val pathToFile = "test_prednaska"
-    val ds = LinearHashingFile(pathToFile = pathToFile, blockCount = 2, numberOfRecordsInBlock = 1, instanceOfType = MyInt(5), maxDensity = 0.8, numberOfRecordsInAdditionalBlock = 1)
+    val numberOfRecordsInAdditionalBlock = 4
+    val ds = LinearHashingFile(pathToFile = pathToFile, blockCount = 2, numberOfRecordsInBlock = 2, instanceOfType = MyInt(5), maxDensity = 0.8, numberOfRecordsInAdditionalBlock = numberOfRecordsInAdditionalBlock)
     val invalid = MyInt(5).apply { validity = Invalid }
     val scope = "scope"
 
@@ -151,8 +152,43 @@ class LinearHashingPrednaska : StringSpec({
 
 */
 
-    "second item to be added in additional block"{
 
+    "two additional blocks"{
+        val a = MyInt(27)
+        val b = MyInt(18)
+        val c = MyInt(29)
+        val d = MyInt(28)
+        val e = MyInt(39)
+        val f = MyInt(13)
+        val g = MyInt(16)
+        val h = MyInt(51)
+        val i = MyInt(19)
+
+        with(ds) {
+            add(a)
+            add(b)
+            add(c)
+            add(d)
+            add(e)
+            add(f)
+            add(g)
+            add(h)
+            add(i)
+        }
+
+        val found = emptyMutableList<MyInt?>()
+        listOf(a,b,c,d,e,f,g,h,i).forEach {
+            found.add(ds.get(it))
+        }
+        found.contains(null) shouldBe false
+        println(ds.allBlocksInFile())
+        println(ds.additionalFile.allBlocksInFile())
+      //  ds.additionalFile.allBlocksInFile() shouldBe listOf(listOf(e,f))
+    }.config(enabled = false )//) numberOfRecordsInAdditionalBlock >= 2)
+
+
+    "second item to be added in additional block"{
+        ds.deleteFiles()
         val a = MyInt(27)
         val b = MyInt(18)
         val c = MyInt(29)
@@ -187,12 +223,6 @@ class LinearHashingPrednaska : StringSpec({
 
         val addit = listOf(a0, a1)
 
-        println(blocks)
-        println(ds.allBlocksInFile())
-        println("=====================")
-        println(addit)
-        println(ds.additionalFile.allBlocksInFile())
-        ds.get(a)
         ds.get(b)
         ds.get(c)
         ds.get(d)
@@ -201,33 +231,51 @@ class LinearHashingPrednaska : StringSpec({
         ds.get(g)
         ds.get(h)
         ds.get(i)
-        addit shouldBe ds.additionalFile.allBlocksInFile()
-        blocks shouldBe ds.allBlocksInFile()
+        println(ds.allBlocksInFile())
+        println(ds.additionalFile.allBlocksInFile())
     }.config(enabled = false)
 
-    "test"{
-        val r = Random(15)
-        val toAdd = (1..10000).map { MyInt(r.nextInt(10000)) }.distinctBy { it.value }
+    "insert and find all"{
+        val r = Random(5000)
+        val numberOfRecords = 10_000
+        val toAdd = (1..numberOfRecords).map { MyInt(Math.abs(r.nextInt())) }//.distinctBy { it.value }
         var foundAll = true
         toAdd.forEachIndexed { index, number ->
             ds.add(number)
         }
 
+
         val found = emptyMutableList<MyInt?>()
         var foundNull = false
-        toAdd.reversed().forEach {
+
+        toAdd.forEach {
             val result = ds.get(it)
             found.add(result)
             if (result == null)
                 foundNull = true
         }
-        val allRecords = (ds.allRecordsInFile() + ds.additionalFile.allRecordsInFile()).filter(MyInt::isValid).sortedBy { it.value }//.distinctBy { it.value }
-//            println(allRecords)
-//            println(found.sortedBy { it!!.value })
-        ds.additionalFile.allBlocksInFile().last().isEmpty() shouldBe false
-        println(ds.additionalFile.allBlocksInFile())
-        allRecords shouldBe toAdd.sortedBy { it.value }
-    }.config(enabled = true)
+
+        foundNull shouldBe false
+    }.config(enabled = false)
+
+
+    "insert, delete and find all"{
+        val r = Random(5000)
+        val numberOfRecords = 5_000 * 2
+        val toAdd = (1..numberOfRecords).map { MyInt(Math.abs(r.nextInt())) }//.distinctBy { it.value }
+        var foundAll = true
+        toAdd.forEach{
+            ds.add(it)
+        }
+
+        toAdd.forEach {
+            if(ds.get(it) != it)
+                println("adding was not successful")
+        }
+
+        val toDelete = toAdd.subList(numberOfRecords/8,numberOfRecords/4)
+
+    }
 
 
 })

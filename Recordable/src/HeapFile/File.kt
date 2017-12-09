@@ -54,15 +54,15 @@ class HeapFile<T : Record<T>> {
      * this functions returns X
      */
     @Suppress("UNCHECKED_CAST")
-    fun add(linearHashBlock: Block<T>, record: T): Int {
-        val additionalBlockStartAddress = linearHashBlock.additionalBlockAddress
+    fun add(linearHashBlock: Block<T>, record: T): AddResult {
+        //val additionalBlockStartAddress = linearHashBlock.additionalBlockAddress
 
         if (linearHashBlock.hasAdditionalBlock()) {
             val additionalBlockNotFound = true
             var additionalBlock = getBlock(linearHashBlock.additionalBlockAddress)
 
             while(additionalBlockNotFound){
-                if(additionalBlock.contains(record)) return additionalBlockStartAddress
+                if(additionalBlock.contains(record)) return AddResult.RecordWasNotAdded
 
                 if (additionalBlock.isFull()) {
                     if (additionalBlock.hasAdditionalBlock()) {
@@ -70,21 +70,32 @@ class HeapFile<T : Record<T>> {
                     } else {
                         additionalBlock.additionalBlockAddress = add(record)
                         additionalBlock.writeToFile()
-                        return additionalBlockStartAddress
+                        return AddResult.RecordAddedToNewBlock(additionalBlock.additionalBlockAddress)
                     }
                 } else {
-                    additionalBlock.additionalBlockAddress = add(record)
-                    additionalBlock.writeToFile()
-                    return additionalBlock.additionalBlockAddress
+                    val success = additionalBlock.add(record)
+                    if (success) {
+                        additionalBlock.writeToFile()
+                        return AddResult.RecordAddedToExistingBlock
+                    } else {
+                        return AddResult.RecordWasNotAdded
+                    }
+
                 }
 
             }
         } else {
-            return add(record)
+            return AddResult.FirstAdditionalBlock(newBlockAddress = add(record))
         }
         throw IllegalStateException("This should not end up here")
     }
 
+    sealed class AddResult{
+        object RecordAddedToExistingBlock                           :AddResult()
+        data class RecordAddedToNewBlock(val newBlockAddress:Int)   :AddResult()
+        data class FirstAdditionalBlock (val newBlockAddress:Int)   :AddResult()
+        object RecordWasNotAdded                                    :AddResult()
+    }
     private fun getAddress(): Int = if (emptyBlockAddresses.isNotEmpty())
             emptyBlockAddresses.removeFirst()
         else {

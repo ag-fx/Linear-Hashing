@@ -14,12 +14,15 @@ open class LinearHashFileBlock<T: Record<T>> : Block<T> {
 
     override var addressInFile: Int
     override var additionalBlockAddress :Int
+     var additionalBlockCount :Int
+     var additionalRecordCount :Int
     override val blockSize: Int
     override var recordCount: Int
         get() = data.size
     override var data : MutableList<T>
     override val ofType : T
     override fun toString() = data.toString()
+
 
     constructor(blockSize:Int, ofType : T,addressInFile :Int = 0) {
         this.blockSize     = blockSize
@@ -29,6 +32,8 @@ open class LinearHashFileBlock<T: Record<T>> : Block<T> {
         ofType.validity    = Validity.Invalid
         this.ofType        = ofType
         this.additionalBlockAddress = -1
+        this.additionalRecordCount = 0
+        this.additionalBlockCount = 0
 
 
     }
@@ -39,6 +44,8 @@ open class LinearHashFileBlock<T: Record<T>> : Block<T> {
         this.addressInFile  = 0
         this.ofType         = ofType
         this.additionalBlockAddress = -1
+        this.additionalRecordCount = 0
+        this.additionalBlockCount = 0
 
         if(data.size > blockSize) throw IllegalArgumentException("you can't initialize block with more data than block size")
 
@@ -51,6 +58,8 @@ open class LinearHashFileBlock<T: Record<T>> : Block<T> {
         this.data          = toCopy.data
         this.ofType        = toCopy.ofType
         this.additionalBlockAddress = toCopy.additionalBlockAddress
+        this.additionalRecordCount = toCopy.additionalRecordCount
+        this.additionalBlockCount  = toCopy.additionalBlockCount
     }
 
     fun copy() = LinearHashFileBlock(this)
@@ -61,6 +70,8 @@ open class LinearHashFileBlock<T: Record<T>> : Block<T> {
         writeInt(blockSize)
         writeInt(recordCount)
         writeInt(additionalBlockAddress)
+        writeInt(additionalRecordCount)
+        writeInt(additionalBlockCount)
         for(i in 0 until blockSize){
             val record = data.getOrNull(i)
             if(record!=null)
@@ -80,6 +91,8 @@ open class LinearHashFileBlock<T: Record<T>> : Block<T> {
         val recordSize    = ofType.byteSize
         val readList      = emptyMutableList<T>()
         val additionalBlockAddress = b.readInt()
+        val additionalRecords      = b.readInt()
+        val additionalBlocks       = b.readInt()
         for (i in 0 until recordCount) {
             val bytes = ByteArray(recordSize)
             for (j in 0 until recordSize)
@@ -94,11 +107,13 @@ open class LinearHashFileBlock<T: Record<T>> : Block<T> {
             this.recordCount            = recordCount
             this.data                   = readList
             this.additionalBlockAddress = additionalBlockAddress
+            this.additionalRecordCount  = additionalRecords
+            this.additionalBlockCount   = additionalBlocks
         }
     }
 
     override val byteSize: Int
-        get() = SizeOfValidity + SizeOfInt + SizeOfInt + SizeOfInt + SizeOfInt + (blockSize * ofType.byteSize)
+        get() = SizeOfValidity + SizeOfInt + SizeOfInt + SizeOfInt + SizeOfInt + SizeOfInt + SizeOfInt + (blockSize * ofType.byteSize)
     override var validity: Validity = Validity.Valid
 
 }

@@ -6,6 +6,7 @@ import AbstractData.*
 import AbstractData.BlockState.Full
 import AbstractData.BlockState.NotFull
 import HeapFile.HeapFile
+import HeapFile.HeapFile.AddResult
 import record.emptyMutableList
 import src.ReadWrite
 import java.io.File
@@ -101,18 +102,32 @@ class LinearHashingFile<T : Record<T>> {
 
     private fun Block<T>.deleteFromAdditional(record: T): Boolean {
         val address = additionalFile.delete(additionalBlockAddress,record)
-        TODO()
+        return true
     }
 
     private fun Block<T>.addToAdditionalFile(record: T): Boolean {
-        val address = additionalFile.add(this, record)
+        val addResult = additionalFile.add(this, record)
+        val thisBlock = (this as LinearHashFileBlock<T>)
 
-        if(address != additionalBlockAddress){
-            val t = (this as LinearHashFileBlock<T>).copy()
-            t.additionalBlockAddress = address
-            write(t)
-            splitCheck()
+        when(addResult){
+            is AddResult.RecordAddedToExistingBlock -> {
+                thisBlock.additionalRecordCount++
+            }
+            is AddResult.RecordAddedToNewBlock      -> {
+                thisBlock.additionalRecordCount++
+                thisBlock.additionalBlockCount++
+            }
+            is AddResult.RecordWasNotAdded          -> {
+                return false
+            }
+            is AddResult.FirstAdditionalBlock       -> {
+                thisBlock.additionalRecordCount++
+                thisBlock.additionalBlockCount++
+                this.additionalBlockAddress = addResult.newBlockAddress
+
+            }
         }
+        write(thisBlock)
         splitCheck()
         return true
     }
@@ -131,8 +146,8 @@ class LinearHashingFile<T : Record<T>> {
     private fun split() {
         val addressOfNewBlockInFile = actualSplitAddress + getFirstHashModulo() * blockByteSize
         file.allocate(numberOfBlocks = 1, startAddressInFile = addressOfNewBlockInFile)
-        val newBlock          = getBlock(addressOfNewBlockInFile / blockByteSize)
-        val splitBlock        = getBlock(actualSplitAddress / blockByteSize)
+        val newBlock          = getBlock(addressOfNewBlockInFile / blockByteSize) as LinearHashFileBlock
+        val splitBlock        = getBlock(actualSplitAddress / blockByteSize)      as LinearHashFileBlock
         val additionalBlocks  = splitBlock.getAdditionalBlocks(true)
         val additionalRecords = additionalBlocks.flatten().reversed()
 
@@ -141,15 +156,36 @@ class LinearHashingFile<T : Record<T>> {
             .filter { it.hash.getSecondHash() != actualSplitAddress / blockByteSize }
             .reversed()
 
-        val recordsThatStayed = ((additionalRecords + splitBlock.data) - recordsToMove).asReversed()
+        val recordsThatStayed = ((additionalRecords + splitBlock.data) - recordsToMove).filter { it.isValid() }.asReversed()
+
         recordsToMove.forEach {
             newBlock.add(it)
             if(additionalRecords.contains(it)) actualRecordsCount++
         }
-        val recordsToAddToAdditionalForNewBlock = recordsToMove - newBlock.data
+
+        val recordsToAddToAdditionalForNewBlock = (recordsToMove - newBlock.data).filter { it.isValid() }
         recordsToAddToAdditionalForNewBlock.forEach {
-            newBlock.additionalBlockAddress = additionalFile.add(newBlock,it)
+            val addResult = additionalFile.add(newBlock, it)
+            when (addResult) {
+                is AddResult.RecordAddedToExistingBlock -> {
+                    newBlock.additionalRecordCount++
+                }
+                is AddResult.RecordAddedToNewBlock -> {
+                    newBlock.additionalBlockCount ++
+                    newBlock.additionalRecordCount++
+                }
+                is AddResult.FirstAdditionalBlock -> {
+                    newBlock.additionalBlockAddress = addResult.newBlockAddress
+                    newBlock.additionalBlockCount ++
+                    newBlock.additionalRecordCount++
+                }
+                is AddResult.RecordWasNotAdded -> {
+
+                }
+            }
+
         }
+
         val block = LinearHashFileBlock(blockSize = numberOfRecordsInBlock, ofType = instanceOfType, addressInFile = splitBlock.addressInFile)
         recordsThatStayed.forEach {
             block.add(it)
@@ -157,7 +193,24 @@ class LinearHashingFile<T : Record<T>> {
 
         val recordsToAddToAdditionalFile = recordsThatStayed - block.data
         recordsToAddToAdditionalFile.forEach {
-            block.additionalBlockAddress= additionalFile.add(block,it)
+            val addResult = additionalFile.add(block,it)
+            when(addResult){
+                is AddResult.RecordAddedToExistingBlock -> {
+                    block.additionalRecordCount++
+                }
+                is AddResult.RecordAddedToNewBlock      -> {
+                    block.additionalRecordCount++
+                    block.additionalBlockCount++
+                }
+                is AddResult.FirstAdditionalBlock       -> {
+                    block.additionalBlockAddress = addResult.newBlockAddress
+                    block.additionalRecordCount++
+                    block.additionalBlockCount++
+                }
+                is AddResult.RecordWasNotAdded          -> {
+
+                }
+            }
         }
         write(newBlock)
         actualBlockCount++
