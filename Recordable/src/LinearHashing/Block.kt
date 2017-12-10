@@ -32,8 +32,8 @@ open class LinearHashFileBlock<T: Record<T>> : Block<T> {
         ofType.validity    = Validity.Invalid
         this.ofType        = ofType
         this.additionalBlockAddress = -1
-        this.additionalRecordCount = 0
-        this.additionalBlockCount = 0
+        this.additionalRecordCount  = 0
+        this.additionalBlockCount   = 0
 
 
     }

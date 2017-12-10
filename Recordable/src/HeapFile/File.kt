@@ -3,8 +3,6 @@ package HeapFile
 import AbstractData.*
 import record.emptyMutableList
 import src.ReadWrite
-import java.io.RandomAccessFile
-import java.util.*
 
 class HeapFile<T : Record<T>> {
 
@@ -43,8 +41,6 @@ class HeapFile<T : Record<T>> {
         heapBlock.writeToFile()
         return addressInHeapFile
     }
-
-
 
     private fun Block<T>.writeToFile() = heapFile.writeFrom(addressInFile,toByteArray())
 
@@ -87,7 +83,18 @@ class HeapFile<T : Record<T>> {
 
             }
         } else {
-            return AddResult.FirstAdditionalBlock(newBlockAddress = add(record))
+            val emptyAddress = getAddress()
+            val heapBlock    = getBlock(emptyAddress)
+            var success      = heapBlock.add(record)
+            if(success)
+                totalNumberOfRecords++
+            else
+                return AddResult.RecordWasNotAdded
+
+            emptyBlockAddresses.remove(heapBlock.addressInFile)
+            val addressInHeapFile = heapBlock.addressInFile
+            heapBlock.writeToFile()
+            return AddResult.FirstAdditionalBlock(newBlockAddress = addressInHeapFile)
         }
         throw IllegalStateException("This should not end up here")
     }
@@ -180,27 +187,50 @@ class HeapFile<T : Record<T>> {
         return null
     }
 
-
-    fun delete(additionalBlockAddress: Int, record: T): Boolean {
+    fun delete(additionalBlockAddress: Int, record: T): DeleteResult {
         var additionalBlockAddress = additionalBlockAddress
+        val readBlocks = emptyMutableList<Block<T>>()
         val lastNotFound = true
         while (lastNotFound) {
             val block = getBlock(additionalBlockAddress)
+            readBlocks.add(block)
             if(block.contains(record)){
                 block.delete(record)
                 totalNumberOfRecords--
                 block.writeToFile()
-                tryTrim()
-                return true
+                if(block.isEmpty()){
+                    if(readBlocks.size==1){
+                        emptyBlockAddresses.add(block.addressInFile)
+                        totalNumberOfBlocks--
+                        return DeleteResult.AllAdditionalDeleted
+                    }
+                    else{
+                        val blockThatPointsToTheLast = readBlocks.first { it.additionalBlockAddress == block.addressInFile }
+                        blockThatPointsToTheLast.additionalBlockAddress = NoAdditionalBlockAddress
+                        blockThatPointsToTheLast.writeToFile()
+                        emptyBlockAddresses.add(block.addressInFile)
+                        totalNumberOfBlocks--
+                        return DeleteResult.BlockAndRecordDeleted
+                    }
+                }
+//                tryTrim()
+                return DeleteResult.Deleted
             }
 
             if (block.hasAdditionalBlock()) {
                 additionalBlockAddress = block.additionalBlockAddress
             } else {
-                return false
+                return DeleteResult.NotDeleted
             }
         }
         throw IllegalStateException("this should not end up here")
+    }
+
+    sealed class DeleteResult{
+        object Deleted               : DeleteResult()
+        object NotDeleted            : DeleteResult()
+        object BlockAndRecordDeleted : DeleteResult()
+        object AllAdditionalDeleted  : DeleteResult()
     }
 
     fun getLastBlock(startAddress : Int) : Block<T>{
@@ -230,7 +260,17 @@ class HeapFile<T : Record<T>> {
     fun shake(additionalBlockAddress: Int) {
         val partlyEmptyBlocks = emptyMutableList<Block<T>>()
         val readBlocks        = emptyMutableList<Block<T>>()
+        var block             = getBlock(additionalBlockAddress)
+        while(block.hasAdditionalBlock()){
+            readBlocks.add(block)
+            if(block.isNotFull())
+                partlyEmptyBlocks.add(block)
+            block = getBlock(block.additionalBlockAddress)
+        }
 
+        val test = getLastBlock(additionalBlockAddress)
+        val bl = block
+        println("wiii")
     }
 
 }

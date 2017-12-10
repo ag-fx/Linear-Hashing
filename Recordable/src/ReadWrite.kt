@@ -36,7 +36,9 @@ class ReadWrite(val path: String) {
      * shrinks file from the end
      */
     fun shrink(numberOfBytes:Int){
+        val fileLeng = file.length()
         file.setLength(file.length()-numberOfBytes)
+        val newFileLeng = file.length()
     }
     fun read(size: Int, index: Int): ByteArray {
         val vysledok = StringBuffer()

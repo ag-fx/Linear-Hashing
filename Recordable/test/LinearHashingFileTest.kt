@@ -18,6 +18,7 @@ import record.Validity.Valid
 import record.emptyMutableList
 import record.readValidity
 import record.writeValidity
+import shuffle
 import java.io.ByteArrayInputStream
 import java.io.DataInputStream
 import java.io.File
@@ -88,8 +89,16 @@ class MyInt(val value: Int) : Record<MyInt> {
 enum class Operation(value:Int){Insert(1),Find(2)}
 class LinearHashingPrednaska : StringSpec({
     val pathToFile = "test_prednaska"
-    val numberOfRecordsInAdditionalBlock = 3
-    val ds = LinearHashingFile(pathToFile = pathToFile, blockCount = 2, numberOfRecordsInBlock = 2, instanceOfType = MyInt(5), maxDensity = 0.8, numberOfRecordsInAdditionalBlock = numberOfRecordsInAdditionalBlock)
+    val numberOfRecordsInAdditionalBlock = 1
+    val ds = LinearHashingFile(
+        pathToFile = pathToFile,
+        blockCount = 2,
+        numberOfRecordsInBlock = 2,
+        instanceOfType = MyInt(5),
+        maxDensity = 0.8,
+        minDensity = 0.64,
+        numberOfRecordsInAdditionalBlock = numberOfRecordsInAdditionalBlock
+    )
     val invalid = MyInt(5).apply { validity = Invalid }
     val scope = "scope"
 
@@ -187,60 +196,31 @@ class LinearHashingPrednaska : StringSpec({
     }.config(enabled = false )//) numberOfRecordsInAdditionalBlock >= 2)
 
 
-    "second item to be added in additional block"{
+    "add and delete"{
         ds.deleteFiles()
-        val a = MyInt(27)
-        val b = MyInt(18)
-        val c = MyInt(29)
-        val d = MyInt(28)
-        val e = MyInt(39)
-        val f = MyInt(13)
-        val g = MyInt(16)
-        val h = MyInt(51)
-        val i = MyInt(19)
-        listOf(a,b,c,d,e,f,g,h,i)
-        with(ds) {
-            add(a)
-            add(b)
-            add(c)
-            add(d)
-            add(e)
-            add(f)
-            add(g)
-            add(h)
-            add(i)
+
+        val numbers = listOf(27,18,29,28,39,13,16,51,19).map{MyInt(it)}
+        numbers.forEach {
+            ds.add(it)
+ //           println(ds)
         }
 
-        val b0 = listOf(MyInt(16), invalid)
-        val b1 = listOf(MyInt(29), MyInt(13))
-        val b2 = listOf(MyInt(18), invalid)
-        val b3 = listOf(MyInt(27), MyInt(39))
-        val b4 = listOf(MyInt(28), invalid)
+        println("=`=`=`=`=`=`=`==``==`=`=`=`=`=`==`")
+        println("\nIDEM MAZAT\n")
+        println("=`=`=`=`=`=`=`==``==`=`=`=`=`=`==`")
 
-        val blocks = listOf(b0, b1, b2, b3, b4)
 
-        val a0 = listOf(MyInt(51))
-        val a1 = listOf(MyInt(19))
+        val toDelete = listOf( 18, 19, 13, 28).map { MyInt(it) }
+       toDelete.forEach {
+           println("\nmazem $it")
+            ds.delete(it)
+            println(ds)
+        }
 
-        val addit = listOf(a0, a1)
-
-        ds.get(b)
-        ds.get(c)
-        ds.get(d)
-        ds.get(e)
-        ds.get(f)
-        ds.get(g)
-        ds.get(h)
-        ds.get(i)
-        println(ds.allBlocksInFile())
-        println(ds.additionalFile.allBlocksInFile())
-        println("""
-            ${ds.actualRecordsCount} ...mal by byt  7
-            ${ds.actualBlockCount}   ...mal by byt  5
-            --------
-            ${ds.additionalRecordsCount} ... mal by byt 2
-            ${ds.additionalBlockCount}   ... mal by byt 1
-           """.trimIndent())
+        val toGet = listOf(16,29,27,39,51).map { MyInt(it) }
+        toGet.forEach {
+            println(ds.get(it))
+        }
     }.config(enabled = false)
 
     "insert and find all"{
@@ -262,8 +242,8 @@ class LinearHashingPrednaska : StringSpec({
             if (result == null)
                 foundNull = true
         }
-        println(toAdd.sortedBy { it.value })
-        println((ds.allRecordsInFile() + ds.additionalFile.allRecordsInFile()).filter{it.isValid()}.sortedBy { it.value })
+   //     println(toAdd.sortedBy { it.value })
+        println(ds.additionalFile.allBlocksInFile())
 
         foundNull shouldBe false
     }.config(enabled = false)
@@ -271,30 +251,41 @@ class LinearHashingPrednaska : StringSpec({
 
     "insert, delete and find all"{
         val r = Random(5000)
-        val numberOfRecords = 5_000 * 2
-        val toAdd = (1..numberOfRecords).map { MyInt(Math.abs(r.nextInt())) }//.distinctBy { it.value }
+        val numberOfRecords = 10 * 2
+        val toAdd = (1..numberOfRecords).map { MyInt(Math.abs(r.nextInt(50))) }//.distinctBy { it.value }
         toAdd.forEach{
             ds.add(it)
         }
 
 
-        toAdd.forEach {
-            if(ds.get(it) != it)
-                println("adding was not successful")
-        }
-         val toDelete = toAdd.subList(numberOfRecords/8,numberOfRecords/4)
+
+        val allRecords = (ds.allRecordsInFile() + ds.additionalFile.allRecordsInFile()).sortedBy { it.value }
+        val allAdditio = ds.additionalFile.allBlocksInFile().flatten()
+
+        val allRecordsBeforeDelete = (allRecords + allAdditio).distinctBy { it.value }
+        val toDelete = allRecordsBeforeDelete.filter { it.isValid() }.subList(numberOfRecords/8,numberOfRecords/2).shuffle(8)
+        println("allRecords")
+        println(allRecordsBeforeDelete)
+        println("this i'm going to delete")
+        println(toDelete)
+
+        fun allinfajl() = (ds.allRecordsInFile() ) + ds.additionalFile.allBlocksInFile().flatten()
+        fun findAll()  = (allinfajl() - toDelete).map { ds.get(it) }.all { true }
+        //println(ds)
+      //  println()
+    //    println()
+        println(ds)
         toDelete.forEach {
+  //          println("\nmazem $it")
             ds.delete(it)
+//            println(ds)
+        //    print(", $it")
         }
 
-        println(ds.additionalFile.allBlocksInFile())
-
-        var foundAll = true
-        (toAdd - toDelete).forEach {
-            if(ds.get(it) != it)
-                foundAll = false
-        }
-        foundAll shouldBe true
+        println(ds)
+        println(ds.get(MyInt(16)))
+        //      println(ds.get(MyInt(2092773117)))
+//
     }.config(enabled = true)
 
 

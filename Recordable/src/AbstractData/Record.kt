@@ -37,3 +37,8 @@ inline fun toBytes(f: DataOutputStream.() -> Unit): ByteArray{
 }
 
 fun <T:Record<T>> T.copy()  =this.toByteArray().let { this.fromByteArray(it) }
+
+/*
+
+
+*/
