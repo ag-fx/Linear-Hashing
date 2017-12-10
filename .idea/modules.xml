@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/Recordable/Recordable.iml" filepath="$PROJECT_DIR$/Recordable/Recordable.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/app.iml" filepath="$PROJECT_DIR$/.idea/modules/app/app.iml" group="app" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/com.chmelar.iml" filepath="$PROJECT_DIR$/.idea/modules/com.chmelar.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/com.chmelar_main.iml" filepath="$PROJECT_DIR$/.idea/modules/com.chmelar_main.iml" group="com.chmelar" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/com.chmelar_test.iml" filepath="$PROJECT_DIR$/.idea/modules/com.chmelar_test.iml" group="com.chmelar" />

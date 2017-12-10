@@ -199,14 +199,19 @@ class HeapFile<T : Record<T>> {
                 totalNumberOfRecords--
                 block.writeToFile()
                 if(block.isEmpty()){
-                    if(readBlocks.size==1){
+                    if(readBlocks.size==1 && block.hasNotAdditionalBlock()){
                         emptyBlockAddresses.add(block.addressInFile)
                         totalNumberOfBlocks--
                         return DeleteResult.AllAdditionalDeleted
+                    }else if(readBlocks.size==1 && block.hasAdditionalBlock()){
+                        emptyBlockAddresses.add(block.addressInFile)
+                        totalNumberOfBlocks--
+                        return DeleteResult.AdditionalStartAddressMoved(block.additionalBlockAddress)
                     }
                     else{
                         val blockThatPointsToTheLast = readBlocks.first { it.additionalBlockAddress == block.addressInFile }
-                        blockThatPointsToTheLast.additionalBlockAddress = NoAdditionalBlockAddress
+                        //if(block.additionalBlockAddress != NoAdditionalBlockAddress)
+                        blockThatPointsToTheLast.additionalBlockAddress = block.additionalBlockAddress//NoAdditionalBlockAddress
                         blockThatPointsToTheLast.writeToFile()
                         emptyBlockAddresses.add(block.addressInFile)
                         totalNumberOfBlocks--
@@ -231,6 +236,7 @@ class HeapFile<T : Record<T>> {
         object NotDeleted            : DeleteResult()
         object BlockAndRecordDeleted : DeleteResult()
         object AllAdditionalDeleted  : DeleteResult()
+        data class AdditionalStartAddressMoved(val newAddress:Int) : DeleteResult()
     }
 
     fun getLastBlock(startAddress : Int) : Block<T>{

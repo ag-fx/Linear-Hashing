@@ -1,2 +1,3 @@
 rootProject.name = 'com.chmelar'
+include 'app'
 

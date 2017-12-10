@@ -141,7 +141,6 @@ class LinearHashingFile<T : Record<T>> {
                 moveToAdditional.forEach {
                     moveTo.addToAdditionalFile(it)
                 }
-                //TODO zrus poseldnu adresu mvoeFromAddress
                 actualSplitAddress = moveToAddress * blockByteSize
                 file.shrink(blockByteSize)
                 actualBlockCount--
@@ -169,56 +168,7 @@ class LinearHashingFile<T : Record<T>> {
             }else
                 return
         }
-        //    if (actualSplitAddress > 0)
-            /*   val a = currentDensity
-            val b = minDensity
-            val c = shouldMerge
 
-            val moveFrom  =  getBlock(((actualSplitAddress + numberOfRecordsInBlock * Math.pow(2.0, currentLevel.toDouble())) - blockByteSize).toInt()/blockByteSize) as LinearHashFileBlock
-            var lastBlock = if(actualSplitAddress==0 && currentLevel > 0)
-                 getBlock(getSecondHashModulo()*blockByteSize - blockByteSize)
-            else
-                 getBlock(actualSplitAddress + getFirstHashModulo()- blockByteSize)
-
-            val lastBlockRecords = (lastBlock.data + lastBlock.getAdditionalBlocks(true).flatten()).filter { it.isValid() }
-
-            actualRecordsCount -= lastBlock.data.filter { it.isValid() }.size
-            lastBlockRecords.forEach {
-                if(moveFrom.add(it))
-                    actualRecordsCount++
-            }
-
-            val blockToMoveToAdditional = lastBlockRecords - moveFrom.data
-
-            blockToMoveToAdditional.forEach {
-                val result = additionalFile.add(moveFrom,it)
-                when(result){
-                    is AddResult.RecordAddedToExistingBlock -> {
-                        moveFrom.additionalBlockCount++
-                    }
-                    is AddResult.RecordAddedToNewBlock -> {
-                        moveFrom.additionalRecordCount++
-                        moveFrom.additionalBlockCount++
-                    }
-                    is AddResult.FirstAdditionalBlock -> {
-                        moveFrom.additionalRecordCount +
-                        moveFrom.additionalBlockCount++
-                        moveFrom.additionalBlockAddress = result.newBlockAddress
-                    }
-                    is AddResult.RecordWasNotAdded -> doNothing()
-                }
-            }
-            actualSplitAddress -= blockByteSize
-
-            file.shrink(blockByteSize)
-            actualBlockCount--
-            write(moveFrom)
-            if(actualSplitAddress==0 && currentLevel > 0)
-            {
-                actualSplitAddress = actualSplitAddress + getFirstHashModulo()- blockByteSize
-                currentLevel--
-            }
-*/
 
     }
 
@@ -233,22 +183,27 @@ class LinearHashingFile<T : Record<T>> {
                val success = additionalFile.delete(additionalBlockAddress,record)
                when(success){
                    DeleteResult.Deleted     -> additionalRecordCount--
-                   DeleteResult.NotDeleted  -> doNothing()
+                   DeleteResult.NotDeleted  -> return false
                    DeleteResult.BlockAndRecordDeleted -> {
                        additionalRecordCount--
                        additionalBlockCount --
                    }
                    DeleteResult.AllAdditionalDeleted -> {
                        additionalRecordCount  = 0
-                       additionalBlockCount   =  0
+                       additionalBlockCount   = 0
                        additionalBlockAddress = NoAdditionalBlockAddress
+                   }
+                   is DeleteResult.AdditionalStartAddressMoved ->{
+                       additionalRecordCount  = 0
+                       additionalBlockCount   = 0
+                       additionalBlockAddress = success.newAddress
                    }
                }
                write(this@with)
 
                if(willSaveBlock()){
                    println()
-           //        additionalFile.shake(additionalBlockAddress)
+                  // additionalFile.shake(additionalBlockAddress)
                }
            }
 //        val address = additionalFile.delete(additionalBlockAddress,record)
@@ -399,6 +354,8 @@ class LinearHashingFile<T : Record<T>> {
 
         else return getFirstHash()
     }
+
+    internal fun allRecords() = allRecordsInFile() + additionalFile.allRecordsInFile()
 
     internal fun allRecordsInFile() = allBlocksInFile().flatten()
 

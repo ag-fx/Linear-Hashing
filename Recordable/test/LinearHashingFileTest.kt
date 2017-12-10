@@ -8,6 +8,8 @@ import AbstractData.toBytes
 import LinearHashing.LinearHashFileBlock
 import LinearHashing.LinearHashingFile
 import com.google.common.annotations.VisibleForTesting
+import filterInvalid
+import io.kotlintest.matchers.should
 import io.kotlintest.matchers.shouldBe
 import io.kotlintest.matchers.shouldEqual
 import io.kotlintest.specs.StringSpec
@@ -89,7 +91,7 @@ class MyInt(val value: Int) : Record<MyInt> {
 enum class Operation(value:Int){Insert(1),Find(2)}
 class LinearHashingPrednaska : StringSpec({
     val pathToFile = "test_prednaska"
-    val numberOfRecordsInAdditionalBlock = 1
+    val numberOfRecordsInAdditionalBlock = 2
     val ds = LinearHashingFile(
         pathToFile = pathToFile,
         blockCount = 2,
@@ -251,40 +253,44 @@ class LinearHashingPrednaska : StringSpec({
 
     "insert, delete and find all"{
         val r = Random(5000)
-        val numberOfRecords = 10 * 2
-        val toAdd = (1..numberOfRecords).map { MyInt(Math.abs(r.nextInt(50))) }//.distinctBy { it.value }
+        val numberOfRecords = 2000 * 2
+        val toAdd = (1..numberOfRecords).map { MyInt(Math.abs(r.nextInt(numberOfRecords*2))) }//.distinctBy { it.value }
         toAdd.forEach{
             ds.add(it)
         }
 
-
-
-        val allRecords = (ds.allRecordsInFile() + ds.additionalFile.allRecordsInFile()).sortedBy { it.value }
-        val allAdditio = ds.additionalFile.allBlocksInFile().flatten()
-
-        val allRecordsBeforeDelete = (allRecords + allAdditio).distinctBy { it.value }
-        val toDelete = allRecordsBeforeDelete.filter { it.isValid() }.subList(numberOfRecords/8,numberOfRecords/2).shuffle(8)
+        val allRecordsBeforeDelete = ds.allRecords().filterInvalid().sortedBy { it.value }
+        val toDelete = allRecordsBeforeDelete.filter { it.isValid() }.subList(numberOfRecords/8,numberOfRecords/2)
         println("allRecords")
         println(allRecordsBeforeDelete)
         println("this i'm going to delete")
         println(toDelete)
 
-        fun allinfajl() = (ds.allRecordsInFile() ) + ds.additionalFile.allBlocksInFile().flatten()
-        fun findAll()  = (allinfajl() - toDelete).map { ds.get(it) }.all { true }
-        //println(ds)
-      //  println()
-    //    println()
-        println(ds)
         toDelete.forEach {
-  //          println("\nmazem $it")
             ds.delete(it)
-//            println(ds)
-        //    print(", $it")
+            println("deleted $it")
+            ds.allRecords().filterInvalid().sortedBy { it.value }.forEach {
+                if(ds.get(it)==null){
+                    println("$it was not found")
+
+                }
+            }
         }
 
-        println(ds)
-        println(ds.get(MyInt(16)))
-        //      println(ds.get(MyInt(2092773117)))
+        val theOnesThatAreLeft = ds.allRecords().filterInvalid().sortedBy { it.value }
+        println("those which are left")
+        println(theOnesThatAreLeft)
+        var foundAll = true
+        ds.allRecords().filterInvalid().sortedBy { it.value }.forEach {
+            if(ds.get(it)==null){
+                println("$it was not found")
+                foundAll = false
+            }
+        }
+        if(foundAll){
+            println("found all")
+        }
+        foundAll shouldBe true
 //
     }.config(enabled = true)
 

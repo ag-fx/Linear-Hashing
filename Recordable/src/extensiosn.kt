@@ -1,3 +1,6 @@
+import AbstractData.Record
+import AbstractData.Serializable
+import AbstractData.isValid
 import java.util.*
 
 /**
@@ -9,3 +12,5 @@ fun <T> Iterable<T>.shuffle(seed: Long? = null): List<T> {
     Collections.shuffle(list, random)
     return list
 }
+
+inline fun <reified T:Serializable<T>> List<T>.filterInvalid() = this.filter { it.isValid() }
