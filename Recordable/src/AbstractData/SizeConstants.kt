@@ -16,4 +16,4 @@ operator fun SizeConst.plus(other: SizeConst)   = other.value + this.value
 operator fun Int      .plus(other: SizeConst)   = other.value + this
 
 operator fun SizeConst.times(other: Int)        = other *  this.value
-operator fun Int      .times(sizeOf: SizeConst) = this * sizeOf.value
+operator fun Int      .times(sizeOf: SizeConst) = this  * sizeOf.value

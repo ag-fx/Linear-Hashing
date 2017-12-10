@@ -1,3 +1,5 @@
+@file:Suppress("NOTHING_TO_INLINE")
+
 package record
 
 import AbstractData.SizeConst.SizeOfInt
@@ -7,13 +9,13 @@ import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.util.*
 
-fun DataOutputStream.writeString(string: String, maxStringSize: Int) {
+inline fun DataOutputStream.writeString(string: String, maxStringSize: Int) {
     writeInt(string.length)
     writeChars(string)
     (1..maxStringSize - string.length).forEach { writeChar(0) }
 }
 
-fun DataInputStream.readString(maxStringSize: Int): String {
+inline fun DataInputStream.readString(maxStringSize: Int): String {
     var result = ""
     val stringLength = readInt()
     for (i in 1..stringLength) {
@@ -23,13 +25,13 @@ fun DataInputStream.readString(maxStringSize: Int): String {
     return result
 }
 
-fun DataOutputStream.writeValidity(validity: Validity) = writeInt(validity.value)
-fun DataInputStream .readValidity() = readInt().validityValue()
+inline fun DataOutputStream.writeValidity(validity: Validity) = writeInt(validity.value)
+inline fun DataInputStream .readValidity() = readInt().validityValue()
 
-fun DataOutputStream.writeDate(date: Date) = writeLong(date.time)
-fun DataInputStream .readDate() = Date(readLong())
+inline fun DataOutputStream.writeDate(date: Date) = writeLong(date.time)
+inline fun DataInputStream .readDate() = Date(readLong())
 
-fun Int.validityValue()  = if(this==1) Valid else if (this==2) Invalid else throw IllegalArgumentException("Validitiy is either ${Valid.value} or ${Invalid.value}")
+inline fun Int.validityValue()  = if(this==1) Valid else if (this==2) Invalid else throw IllegalArgumentException("Validitiy is either ${Valid.value} or ${Invalid.value}")
 
 enum class Validity(val value:Int){
     Valid  (1),

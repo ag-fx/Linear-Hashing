@@ -42,7 +42,7 @@ class LinearHashingFileTest : StringSpec({
 
     val block = LinearHashFileBlock(blockSize, Person("", "", Date(5)), listOf(joe, john, doe))
 
-    val ds = LinearHashingFile(pathToFile = pathToFile, instanceOfType = ofType, numberOfRecordsInBlock = blockSize, blockCount = 4,numberOfRecordsInAdditionalBlock = 2)
+    val ds = LinearHashingFile(pathToFile = pathToFile, instanceOfType = ofType, numberOfRecordsInBlock = blockSize, blockCount = 4,numberOfRecordsInAdditionalBlock = 2,maxDensity = 0.8,minDensity = 0.68)
 
     "add one record"{
         println(ds.allRecordsInFile())
@@ -104,9 +104,13 @@ class LinearHashingPrednaska : StringSpec({
     val invalid = MyInt(5).apply { validity = Invalid }
     val scope = "scope"
 
+
+
     "delete"{
         ds.deleteFiles() shouldBe true
     }
+
+
     /*
     "18,27,29"{
         ds.add(18)
@@ -260,7 +264,7 @@ class LinearHashingPrednaska : StringSpec({
         }
 
         val allRecordsBeforeDelete = ds.allRecords().filterInvalid().sortedBy { it.value }
-        val toDelete = allRecordsBeforeDelete.filter { it.isValid() }.subList(numberOfRecords/8,numberOfRecords/2)
+        val toDelete = allRecordsBeforeDelete.filter { it.isValid() }.subList(numberOfRecords/8,numberOfRecords/2).shuffle(5000)
         println("allRecords")
         println(allRecordsBeforeDelete)
         println("this i'm going to delete")
@@ -292,7 +296,7 @@ class LinearHashingPrednaska : StringSpec({
         }
         foundAll shouldBe true
 //
-    }.config(enabled = true)
+    }.config(enabled = false)
 
 
 })

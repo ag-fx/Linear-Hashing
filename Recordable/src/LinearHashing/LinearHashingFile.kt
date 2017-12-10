@@ -25,12 +25,16 @@ class LinearHashingFile<T : Record<T>> {
     constructor(
         pathToFile: String,
         instanceOfType: T,
-        numberOfRecordsInBlock: Int = 3,
-        numberOfRecordsInAdditionalBlock: Int = 2,
-        blockCount: Int = 4,
-        minDensity: Double = 0.0,
-        maxDensity: Double = 0.75,
+        numberOfRecordsInBlock: Int,
+        numberOfRecordsInAdditionalBlock: Int ,
+        blockCount: Int ,
+        minDensity: Double ,
+        maxDensity: Double ,
         suffix: String = "uds") {
+            if(true){
+                File("$pathToFile.$suffix").delete()
+                File("${pathToFile}_additionalFile.$suffix").delete()
+            }
             this.pathToFile             = "$pathToFile.$suffix"
             this.pathToAdditionalFile   = "${pathToFile}_additionalFile.$suffix"
             this.instanceOfType         = instanceOfType
