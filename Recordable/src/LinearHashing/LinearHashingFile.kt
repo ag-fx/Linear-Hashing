@@ -32,10 +32,11 @@ class LinearHashingFile<T : Record<T>> {
         blockCount: Int ,
         minDensity: Double ,
         maxDensity: Double ,
+        deleteFiles: Boolean = false,
         suffix: String = "uds") {
             this.pathToFile             = "$pathToFile.$suffix"
             this.pathToAdditionalFile   = "${pathToFile}_additionalFile.$suffix"
-            if(true){
+            if(deleteFiles){
                 File(this.pathToFile).delete()
                 File("info_${this.pathToFile}").delete()
                 File(this.pathToAdditionalFile).delete()
