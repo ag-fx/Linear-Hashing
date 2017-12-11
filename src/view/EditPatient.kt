@@ -29,8 +29,14 @@ class EditPatientView : View() {
                         controller.findPatient(patientIdModel.item.value)
                     }
                 }
-
             }
+            button("Zmaz"){
+                enableWhen { controller.patient.isNotNull }
+                action {
+                 controller.deletePatient()
+                }
+            }
+            label(controller.status)
             label{
                 textProperty().bind(controller.patient.asString())
             }

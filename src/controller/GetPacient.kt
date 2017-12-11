@@ -1,11 +1,8 @@
 package controller
 
-import javafx.beans.property.SimpleObjectProperty
-import model.*
-import record.emptyMutableList
-import tornadofx.*
+import model.HospitalizationModel
+import model.updatePatient
 import java.time.LocalDate
-import java.util.*
 
 class FindPacientController: BaseController() {
 
@@ -17,6 +14,7 @@ class FindPacientController: BaseController() {
         val success = updatePatient(newP)
         if(success){
             findPatient(p.id.value)
+
         }else{
             status.set("fail")
         }

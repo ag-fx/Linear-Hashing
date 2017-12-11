@@ -38,10 +38,7 @@ class FindPatientView : View() {
                 label("Pacient : "){
                     textProperty().bind(controller.patient.asString())
                 }
-//                tableview(controller.foundPatients){
-//                    column("Cislo preukazu", Patient::id)
-//
-//                }
+
             }
 
             tableview(controller.hospitalizations ){
@@ -50,16 +47,8 @@ class FindPatientView : View() {
                 column("Diagnoza",Hospitalization::diagnosis)
                 bindSelected(hospitalization)
             }
-            button("dummy add"){
-                action {
-                    val t = Patient(PatientId(5))
-                    insertPatient(Patient(PatientId(1)))
-                    insertPatient(Patient(PatientId(2)))
-                    insertPatient(Patient(PatientId(3)))
-                }
-            }
-            button("Ukonci"){
 
+            button("Ukonci"){
                 action {
                     controller.endHospit(hospitalization)
                 }

@@ -11,6 +11,7 @@ class AddHospitController: BaseController(){
         val patient = patient.value!!
         val newPatient = patient.copy(hospitalizations = patient.hospitalizations + item )
         status.set(updatePatient(newPatient).toString())
+        this.patient.set(null)
     }
 
 }

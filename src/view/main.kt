@@ -1,10 +1,13 @@
 package view
 
+import javafx.application.Application.launch
+import javafx.application.Platform
 import javafx.geometry.Insets
 import javafx.scene.layout.BorderPane
 import model.Patient
 import model.PatientId
 import model.insertPatient
+import model.patients
 import tornadofx.*
 
 fun main(args: Array<String>) = launch<MyApp>(args)
@@ -46,7 +49,8 @@ class CenterView : View() {
         Pair("1. Vyhľadanie záznamov pacienta ", FindPatientView::class),
         Pair("x. Hospitalizacia "              , AddHospitalizationView::class),
         Pair("6. Pridanie pacienta"            , AddPatientView ::class),
-        Pair("x. Edit pacienta"                , EditPatientView ::class)
+        Pair("x. Edit pacienta"                , EditPatientView ::class),
+        Pair("Generator"                       , Generator ::class)
     )
 
     override val root = vbox {
@@ -63,6 +67,15 @@ class CenterView : View() {
                         replaceWith(it.second, ViewTransition.Slide(0.3.seconds, ViewTransition.Direction.LEFT))
                     }
                 }
+            }
+        }
+        button("exit"){
+            action {
+                patients.close()
+                Platform.exit()
+                System.exit(0)
+
+
             }
         }
 

@@ -25,4 +25,15 @@ open class BaseController : Controller(){
         }
 
     }
+
+    fun deletePatient() {
+        val patient = patient.value
+        patient?.let {
+            val success = model.deletePatient(it.id)
+            if(success){
+                this.patient.set(null)
+            }
+            status.set("Delete $success")
+        }
+    }
 }

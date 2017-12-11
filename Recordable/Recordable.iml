@@ -32,5 +32,6 @@
     <orderEntry type="library" name="Gradle: org.mockito:mockito-core:2.7.11" level="project" />
     <orderEntry type="library" name="Gradle: org.objenesis:objenesis:2.5" level="project" />
     <orderEntry type="library" name="Gradle: org.reflections:reflections:0.9.11" level="project" />
+    <orderEntry type="library" name="Gradle: com.google.code.gson:gson:2.8.2" level="project" />
   </component>
 </module>

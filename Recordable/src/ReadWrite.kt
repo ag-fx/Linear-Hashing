@@ -60,6 +60,9 @@ class ReadWrite(val path: String) {
         return bytes
     }
 
+    fun close() {
+     file.close()
+    }
 
 
 }

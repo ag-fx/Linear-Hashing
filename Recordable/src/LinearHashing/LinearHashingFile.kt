@@ -7,10 +7,12 @@ import AbstractData.BlockState.Full
 import AbstractData.BlockState.NotFull
 import HeapFile.HeapFile
 import HeapFile.HeapFile.*
+import com.google.gson.Gson
 import record.emptyMutableList
 import src.ReadWrite
 import java.io.File
 import java.lang.Math.pow
+
 
 class LinearHashingFile<T : Record<T>> {
     val pathToFile: String
@@ -31,25 +33,33 @@ class LinearHashingFile<T : Record<T>> {
         minDensity: Double ,
         maxDensity: Double ,
         suffix: String = "uds") {
-            if(true){
-                File("$pathToFile.$suffix").delete()
-                File("${pathToFile}_additionalFile.$suffix").delete()
-            }
             this.pathToFile             = "$pathToFile.$suffix"
             this.pathToAdditionalFile   = "${pathToFile}_additionalFile.$suffix"
+            if(true){
+                File(this.pathToFile).delete()
+                File("info_${this.pathToFile}").delete()
+                File(this.pathToAdditionalFile).delete()
+                File("info_${this.pathToAdditionalFile}").delete()
+            }
+            val init                    = initState()
             this.instanceOfType         = instanceOfType
-            this.numberOfRecordsInBlock = numberOfRecordsInBlock
-            this.numberOfBlocks         = blockCount // this is the constant M value in pdf from Jankovic.
-            this.actualBlockCount       = blockCount // current number of records in hash file
+
+            this.numberOfRecordsInBlock = init?.numberOfRecordsInBlock ?: numberOfRecordsInBlock
+            this.numberOfBlocks         = init?.numberOfBlocks         ?: blockCount // this is the constant M value in pdf from Jankovic.
+            this.actualBlockCount       = init?.actualBlockCount       ?: blockCount // current number of records in hash file
+            this.actualRecordsCount     = init?.actualRecordsCount     ?: 0 // current number of records in hash file
+            this.actualSplitAddress     = init?.actualSplitAddress     ?: firstBlockAddress
+            this.currentLevel           = init?.currentLevel           ?: 0
             this.minDensity             = minDensity
             this.maxDensity             = maxDensity
             this.file                   = ReadWrite(this.pathToFile)
             this.block                  = LinearHashFileBlock(numberOfRecordsInBlock, instanceOfType)
             this.blockByteSize          = block.byteSize
-            this.actualSplitAddress     = firstBlockAddress
+
             this.numberOfRecordsInAdditionalBlock = numberOfRecordsInAdditionalBlock
             this.additionalFile         = HeapFile(pathToAdditionalFile,instanceOfType,numberOfRecordsInAdditionalBlock)
-            file.allocate(blockCount,firstBlockAddress)
+            if(init==null)
+                file.allocate(blockCount,firstBlockAddress)
     }
 
     internal fun deleteFiles() =
@@ -70,8 +80,8 @@ class LinearHashingFile<T : Record<T>> {
     private val firstBlockAddress  = 0// SizeOfInt * 5
     private val file:  ReadWrite
     private var block: LinearHashFileBlock<T>
-    internal var currentLevel       = 0
-    internal var actualRecordsCount = 0
+    internal var currentLevel       :Int
+    internal var actualRecordsCount :Int
     internal val additionalRecordsCount
         get() = additionalFile.totalNumberOfRecords
     internal val additionalBlockCount
@@ -423,8 +433,53 @@ class LinearHashingFile<T : Record<T>> {
             ${ds.additionalFile.allBlocksInFile()}
            """.trimIndent()
     }
+
+    fun close() {
+        save()
+        file.close()
+        additionalFile.close()
+    }
+
+    private fun save() {
+        val state = LinHashInfo(
+            numberOfRecordsInBlock = this.numberOfRecordsInBlock,
+            blockByteSize = this.blockByteSize,
+            currentLevel = this.currentLevel,
+            actualRecordsCount = this.actualRecordsCount,
+            actualSplitAddress = this.actualSplitAddress,
+            actualBlockCount = this.actualBlockCount,
+            numberOfBlocks = this.numberOfBlocks,
+            minDensity = this.minDensity,
+            maxDensity = this.maxDensity
+        )
+        val g = Gson()
+        val stateJson = g.toJson(state)
+        File("info_$pathToFile").writeText(stateJson)
+    }
+
+    private fun initState() : LinHashInfo? {
+        val file = File("info_$pathToFile")
+        if(!file.exists()) return null
+
+        val json = file.readText()
+        val gson = Gson()
+        return gson.fromJson(json, LinHashInfo::class.java)
+    }
+
 }
 
 fun doNothing(){}
 fun Double.roundDown2() = ((this* 1e2).toLong() / 1e2)
 
+
+data class LinHashInfo(
+    val numberOfRecordsInBlock: Int,
+    val blockByteSize: Int,
+    val currentLevel: Int,
+    val actualRecordsCount: Int,
+    var actualSplitAddress: Int,
+    var actualBlockCount: Int,
+    val numberOfBlocks: Int,
+    val minDensity: Double,
+    val maxDensity: Double
+)

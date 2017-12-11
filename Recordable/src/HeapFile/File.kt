@@ -1,27 +1,37 @@
 package HeapFile
 
 import AbstractData.*
+import LinearHashing.LinHashInfo
+import com.google.gson.Gson
 import record.emptyMutableList
 import src.ReadWrite
+import java.io.File
+import java.util.*
 
 class HeapFile<T : Record<T>> {
 
-    private val blockRecordCount: Int
+  //  private val blockRecordCount: Int
     private val blockSize: Int get () = instanceOfBlock.byteSize
     private val heapFile: ReadWrite
     private val instanceOfRecord: T
     private val instanceOfBlock: HeapFileBlock<T>
-    var totalNumberOfRecords = 0
-    var totalNumberOfBlocks = 0
-
+    private val path:String
+    var totalNumberOfRecords :Int
+    var totalNumberOfBlocks  :Int
     val emptyBlockAddresses  = emptyMutableList<Int>()
 
     constructor(path: String, instanceOfRecord: T, numberOfRecordsInBlock: Int) {
         this.heapFile         = ReadWrite(path)
+        this.path             = path
         this.instanceOfRecord = instanceOfRecord
         this.instanceOfBlock  = HeapFileBlock(numberOfRecordsInBlock, instanceOfRecord)
-        this.blockRecordCount = 0
+        val init = readState()
+        totalNumberOfRecords  = init?.totalNumberOfRecords ?: 0
+        totalNumberOfBlocks   = init?.totalNumberOfBlocks ?: 0
+        emptyBlockAddresses.addAll(init?.emptyBlockAddresses?: emptyList())
     }
+
+
 
     /**
      * @return returns address of the block that records has been inserted to
@@ -301,4 +311,29 @@ class HeapFile<T : Record<T>> {
         println("wiii")
     }
 
+    fun close() {
+        heapFile.close()
+        val state = HeapFileInfo(
+            totalNumberOfRecords = this.totalNumberOfRecords,
+            totalNumberOfBlocks  = this.totalNumberOfBlocks,
+            emptyBlockAddresses  = this.emptyBlockAddresses
+            )
+        val stateJson = Gson().toJson(state)
+        File("info_$path").writeText(stateJson)
+    }
+
+    fun readState(): HeapFileInfo? {
+        val file = File("info_$path")
+        if(!file.exists()) return null
+
+        val json = File("info_$path").readText()
+        val gson = Gson()
+        return gson.fromJson(json,HeapFileInfo::class.java)
+    }
+
 }
+data class HeapFileInfo(
+    val totalNumberOfRecords : Int,
+    val totalNumberOfBlocks : Int,
+    val emptyBlockAddresses:List<Int>
+)
