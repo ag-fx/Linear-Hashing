@@ -25,7 +25,7 @@ fun <T : Serializable<T>> Block<T>.add(item: T): Boolean {
     return true
 }
 
-fun <T : Serializable<T>> Block<T>.update(item: T): Boolean {
+ fun <T : Serializable<T>> Block<T>.update(item: T): Boolean {
      for (i in 0 until data.size) {
         if (data[i] == item) {
             data[i] = item

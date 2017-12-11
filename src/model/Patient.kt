@@ -81,9 +81,9 @@ data class PatientRecord(val patient: Patient) : Record<PatientRecord>{
             hospitalizations.forEach {
                 write(it.toRecord().toByteArray())
             }
-            val dummy = Collections.nCopies(maxHospitalizationCount - hospitalizations.size, instanceOfHospitalization)
+            val dummy = Collections.nCopies(maxHospitalizationCount - hospitalizations.size, instanceOfHospitRecord.toByteArray())
             dummy.forEach {
-                write(it.toRecord().apply { hospitalizations.onEach { invalidate() }; invalidate() }.toByteArray())
+                write(it)
             }
         }
     }
@@ -96,11 +96,15 @@ data class PatientRecord(val patient: Patient) : Record<PatientRecord>{
         val surn  = dis.readString()
         val birht = dis.readDate().toLocalDate()
         val readList = emptyMutableList<HospitalizationRecord>()
+        val recordBytes = emptyMutableList<ByteArray>()
         for (i in 0 until maxHospitalizationCount) {
             val bytes = ByteArray(instanceOfHospitRecord.byteSize)
             for (j in 0 until instanceOfHospitRecord.byteSize)
                 bytes[j] = dis.readByte()
-            readList.add(instanceOfHospitRecord.fromByteArray(bytes))
+            recordBytes.add(bytes)//readList.add(instanceOfHospitRecord.fromByteArray(bytes))
+        }
+        recordBytes.forEach {
+            readList.add(instanceOfHospitRecord.fromByteArray(it))
         }
         val toReturnHospit: List<Hospitalization> = readList.filterInvalid().map { it.hospitalization }
         return PatientRecord(Patient(PatientId(id), name, surn, birht, toReturnHospit)).apply { validity = valid }

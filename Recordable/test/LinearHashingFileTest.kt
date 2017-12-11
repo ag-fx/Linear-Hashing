@@ -199,7 +199,7 @@ class LinearHashingPrednaska : StringSpec({
         println(ds.allBlocksInFile())
         println(ds.additionalFile.allBlocksInFile())
       //  ds.additionalFile.allBlocksInFile() shouldBe listOf(listOf(e,f))
-    }.config(enabled = false )//) numberOfRecordsInAdditionalBlock >= 2)
+    }.config(enabled = true )//) numberOfRecordsInAdditionalBlock >= 2)
 
 
     "add and delete"{

@@ -94,12 +94,15 @@ open class LinearHashFileBlock<T: Record<T>> : Block<T> {
         val additionalBlockAddress = b.readInt()
         val additionalRecords      = b.readInt()
         val additionalBlocks       = b.readInt()
+        val byteRecords = emptyMutableList<ByteArray>()
         for (i in 0 until recordCount) {
             val bytes = ByteArray(recordSize)
             for (j in 0 until recordSize)
                 bytes[j] = b.readByte()
-
-            readList.add(ofType.fromByteArray(bytes))
+            byteRecords.add(bytes)
+        }
+        byteRecords.forEach {
+            readList.add(ofType.fromByteArray(it))
         }
 
         return LinearHashFileBlock(blockSize, ofType).apply {

@@ -1,5 +1,10 @@
 @file:Suppress("NOTHING_TO_INLINE")
 
+import LinearHashing.LinearHashingFile
+import model.Patient
+import model.PatientId
+import model.instanceOfPatientRecord
+import model.toRecord
 import java.time.LocalDate
 import java.time.ZoneId
 import java.util.*
@@ -40,3 +45,30 @@ inline fun Random.nextDiagnosis(): String {
     return names[nextInt(names.size)]
 }
 
+fun main(args: Array<String>) {
+    println("Start")
+    val ds = LinearHashingFile(
+        pathToFile = "test_patients",
+        instanceOfType = instanceOfPatientRecord,
+        numberOfRecordsInAdditionalBlock = 2,
+        maxDensity = 0.75,
+        minDensity = 0.55,
+        numberOfRecordsInBlock = 3,
+        blockCount = 2,
+        deleteFiles = true
+    )
+    println("generujem pacientaov")
+    val patients = (1..1000).map { Patient(PatientId(it)).toRecord() }
+    println("vytvaram")
+    var i = 0
+    patients.forEach {
+        val success = ds.add(it)
+        if (!success) {
+            println("boha. $it")
+        }
+        println(i++)
+
+    }
+    println("done")
+
+}

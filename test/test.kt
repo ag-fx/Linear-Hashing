@@ -7,10 +7,10 @@ import model.instanceOfPatientRecord
 import model.toRecord
 import java.util.*
 
-class BlockAndRecordSerialization : StringSpec({
+class DOHIS : StringSpec({
 
     val ds = LinearHashingFile(
-        pathToFile = "test_patients",
+        pathToFile = "test____patients",
         instanceOfType = instanceOfPatientRecord,
         numberOfRecordsInAdditionalBlock = 2,
         maxDensity = 0.75,
@@ -23,13 +23,15 @@ class BlockAndRecordSerialization : StringSpec({
     val patients = (1..5000).map { Patient(PatientId(it)).toRecord() }
 
     "insert test"{
+        println("start")
         patients.forEach {
             val success = ds.add(it)
             if(!success){
                 println("boha. $it")
             }
-
         }
+        println("end")
+
     }
 
 })

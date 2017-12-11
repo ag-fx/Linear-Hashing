@@ -63,15 +63,17 @@ class HeapFileBlock<T : Record<T>> : Block<T> {
         val addressInFile               = dis.readInt()
         val additionalAddress           = dis.readInt()
         val readList = emptyMutableList<T>()
-
+        val recordBytes = emptyMutableList<ByteArray>()
         for (i in 0 until recordCount) {
             val bytes = ByteArray(ofType.byteSize)
             for (j in 0 until ofType.byteSize)
                 bytes[j] = dis.readByte()
-
-            readList.add(ofType.fromByteArray(bytes))
+            recordBytes.add(bytes)
+            //readList.add(ofType.fromByteArray(bytes))
         }
-
+        recordBytes.forEach {
+            readList.add(ofType.fromByteArray(it))
+        }
         return HeapFileBlock(readList, addressInFile, ofType).apply {
             additionalBlockAddress          = additionalAddress
         }
