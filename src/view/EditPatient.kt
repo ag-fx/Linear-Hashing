@@ -2,11 +2,12 @@ package view
 
 import controller.AddPacientController
 import javafx.scene.layout.VBox
+import model.Patient
 import model.PatientIdModel
 import model.PatientModel
 import tornadofx.*
 
-class AddPatientView : View() {
+class EditPatientView : View() {
     private val controller: AddPacientController by inject()
     private val patientModel: PatientModel         by inject()
     private val patientIdModel: PatientIdModel     by inject()
@@ -17,7 +18,24 @@ class AddPatientView : View() {
     init {
         with(root) {
             goHome()
+            hbox {
+                textfield {
+                    promptText = "ID pacienta"
+                }.bind(patientIdModel.value)
+
+                button("Najdi") {
+                    action {
+                        patientIdModel.commit()
+                        controller.findPatient(patientIdModel.item.value)
+                    }
+                }
+
+            }
+            label{
+                textProperty().bind(controller.patient.asString())
+            }
             form {
+                enableWhen { controller.patient.isNotNull }
                 fieldset("Personal Information") {
                     field("Meno") {
                         textfield().bind(patientModel.firstName)
@@ -38,12 +56,13 @@ class AddPatientView : View() {
             }
 
             button("Save") {
+                enableWhen { controller.patient.isNotNull }
                 setOnAction {
                     patientIdModel.commit()
 
                     patientModel.commit()
                     patientModel.item.id = patientIdModel.item
-                    controller.addPatient(patientModel.item)
+                    controller.updatePatient(patientModel.item)
                     println(patientModel.item)
                 }
             }

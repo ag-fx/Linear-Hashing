@@ -80,9 +80,27 @@ class LinearHashingFile<T : Record<T>> {
     internal var actualBlockCount    : Int
     val blockByteSize                : Int
 
+    fun update(record : T) : Boolean {
+        val block = getBlock(record)
+        if(block.contains(record)){
+            block.update(record)
+            write(block)
+            return true
+        }else{
+            if(block.hasNotAdditionalBlock())
+                return false
+            if(block.hasAdditionalBlock()){
+                return block.updateRecordIndditional(record)
+            }
+        }
+        return false
+    }
+
     fun add(record: T): Boolean {
         val block = getBlock(record)
+
         if(block.contains(record)) return false
+
         val result =  when (block.state()) {
             Full    -> block.addToAdditionalFile(record)
             NotFull -> addToNotFullBlock(block, record)
@@ -236,6 +254,10 @@ class LinearHashingFile<T : Record<T>> {
                 thisBlock.additionalBlockCount++
                 this.additionalBlockAddress = addResult.newBlockAddress
             }
+
+            is AddResult.RecordWasUpdated ->{
+                return  true
+            }
         }
         write(thisBlock)
         splitCheck()
@@ -244,7 +266,6 @@ class LinearHashingFile<T : Record<T>> {
 
     private fun addToNotFullBlock(block: Block<T>, record: T) : Boolean {
         if(block.isFull()) throw IllegalArgumentException("Block is full")
-
         block.add(record)
         write(block)
         actualRecordsCount++
@@ -382,7 +403,8 @@ class LinearHashingFile<T : Record<T>> {
 
     private fun Block<T>.getAllRecords(invalidateThem: Boolean) = (this.data + getAdditionalBlocks(true).flatten()).filter { it.isValid() }
 
-    private fun Block<T>.getRecordFromAdditional(record: T)                   = additionalFile.getRecord(additionalBlockAddress, record)
+    private fun Block<T>.getRecordFromAdditional(record: T)  = additionalFile.getRecord(additionalBlockAddress, record)
+    private fun Block<T>.updateRecordIndditional(record: T)  = additionalFile.updateRecord(additionalBlockAddress, record)
 
     override fun toString() : String {
         val ds = this //cause i copoied it and it's too late

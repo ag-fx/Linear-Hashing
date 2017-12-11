@@ -2,19 +2,41 @@ package model
 
 import AbstractData.*
 import AbstractData.SizeConst.*
+import nextDate
+import nextDiagnosis
+import nextLocalDate
+import nextLocalDateNullable
 import record.*
+import rnd
+import rndNull
 import toDate
 import toLocalDate
+import tornadofx.*
 import java.io.ByteArrayInputStream
 import java.io.DataInputStream
 import java.time.LocalDate
 import java.util.*
 
 data class Hospitalization(
-    var start       : LocalDate,
-    var end         : LocalDate?,
-    var diagnosis   : String
+    var start       : LocalDate  = LocalDate.now(),
+    var end         : LocalDate? = LocalDate.now(),
+    var diagnosis   : String     = Random().nextDiagnosis()
 )
+
+class HospitalizationModel : ItemViewModel<Hospitalization>() {
+    val start = bind(Hospitalization::start)
+    val end = bind(Hospitalization::end)
+    val diagnosis = bind(Hospitalization::diagnosis)
+    override fun onCommit() {
+        super.onCommit()
+        item = Hospitalization(
+            start = start.value,
+            end  = end.value,
+            diagnosis =  diagnosis.value
+        )
+    }
+}
+
 
 inline fun Hospitalization.toRecord() = HospitalizationRecord(this)
 data class HospitalizationRecord(val hospitalization: Hospitalization) : Record<HospitalizationRecord> {
@@ -40,7 +62,7 @@ data class HospitalizationRecord(val hospitalization: Hospitalization) : Record<
             HospitalizationRecord(Hospitalization(startDate, endDate.toLocalDate(), diagnosis)).apply { validity = valid }
     }
 
-    override val byteSize = stringByteSize()*2 + SizeOfValidity  + SizeOfDate * 2
-    override var validity : Validity = Validity.Valid
     override val stringSize = 40
+    override val byteSize = stringByteSize() + SizeOfValidity  + SizeOfDate * 2
+    override var validity : Validity = Validity.Valid
 }

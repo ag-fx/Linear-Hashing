@@ -59,7 +59,10 @@ class HeapFile<T : Record<T>> {
             var additionalBlock = getBlock(linearHashBlock.additionalBlockAddress)
 
             while(additionalBlockNotFound){
-                if(additionalBlock.contains(record)) return AddResult.RecordWasNotAdded
+
+                if (additionalBlock.contains(record)) {
+                    return AddResult.RecordWasNotAdded
+                }
 
                 if (additionalBlock.isFull()) {
                     if (additionalBlock.hasAdditionalBlock()) {
@@ -104,6 +107,7 @@ class HeapFile<T : Record<T>> {
         data class RecordAddedToNewBlock(val newBlockAddress:Int)   :AddResult()
         data class FirstAdditionalBlock (val newBlockAddress:Int)   :AddResult()
         object RecordWasNotAdded                                    :AddResult()
+        object RecordWasUpdated                                     :AddResult()
     }
     private fun getAddress(): Int = if (emptyBlockAddresses.isNotEmpty())
             emptyBlockAddresses.removeFirst()
@@ -185,6 +189,24 @@ class HeapFile<T : Record<T>> {
             }
         }
         return null
+    }
+
+    fun updateRecord(additionalBlockAddress: Int, record: T): Boolean {
+        var additionalBlockAddress = additionalBlockAddress
+        val lastNotFound = true
+        while(lastNotFound){
+            val block = getBlock(additionalBlockAddress)
+            if(block.contains(record)){
+                block.update(record)
+                block.writeToFile()
+                return true
+            }
+            if(block.hasAdditionalBlock()){
+                 additionalBlockAddress = block.additionalBlockAddress
+            }else
+                return true
+        }
+        return false
     }
 
     fun delete(additionalBlockAddress: Int, record: T): DeleteResult {

@@ -2,11 +2,13 @@ package view
 
 import javafx.geometry.Insets
 import javafx.scene.layout.BorderPane
+import model.Patient
+import model.PatientId
+import model.insertPatient
 import tornadofx.*
 
-fun main(args: Array<String>) {
-    launch<MyApp>(args)
-}
+fun main(args: Array<String>) = launch<MyApp>(args)
+
 
 class MyApp : App(MainView::class)
 
@@ -41,7 +43,10 @@ fun View.goHome(f: () -> Unit = {}) = hbox {
 class CenterView : View() {
 
     val menu = listOf(
-        Pair("6. Pridanie pacienta", AddPatientView::class)
+        Pair("1. Vyhľadanie záznamov pacienta ", FindPatientView::class),
+        Pair("x. Hospitalizacia "              , AddHospitalizationView::class),
+        Pair("6. Pridanie pacienta"            , AddPatientView ::class),
+        Pair("x. Edit pacienta"                , EditPatientView ::class)
     )
 
     override val root = vbox {
