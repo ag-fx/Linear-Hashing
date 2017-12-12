@@ -99,6 +99,7 @@ class LinearHashingPrednaska : StringSpec({
         instanceOfType = MyInt(5),
         maxDensity = 0.8,
         minDensity = 0.64,
+        deleteFiles = true,
         numberOfRecordsInAdditionalBlock = numberOfRecordsInAdditionalBlock
     )
     val invalid = MyInt(5).apply { validity = Invalid }
@@ -199,7 +200,7 @@ class LinearHashingPrednaska : StringSpec({
         println(ds.allBlocksInFile())
         println(ds.additionalFile.allBlocksInFile())
       //  ds.additionalFile.allBlocksInFile() shouldBe listOf(listOf(e,f))
-    }.config(enabled = true )//) numberOfRecordsInAdditionalBlock >= 2)
+    }.config(enabled = false )//) numberOfRecordsInAdditionalBlock >= 2)
 
 
     "add and delete"{
@@ -231,7 +232,7 @@ class LinearHashingPrednaska : StringSpec({
 
     "insert and find all"{
         val r = Random( )
-        val numberOfRecords = 10_000
+        val numberOfRecords = 5000
         val toAdd = (1..numberOfRecords).map { MyInt(Math.abs(r.nextInt())) }.distinctBy { it.value }
         var foundAll = true
         toAdd.forEachIndexed { index, number ->
@@ -257,26 +258,26 @@ class LinearHashingPrednaska : StringSpec({
 
     "insert, delete and find all"{
         val r = Random(5000)
-        val numberOfRecords = 2000 * 2
+        val numberOfRecords = 2500 * 2
         val toAdd = (1..numberOfRecords).map { MyInt(Math.abs(r.nextInt(numberOfRecords*2))) }//.distinctBy { it.value }
         toAdd.forEach{
             ds.add(it)
+         //  ds.allRecords().filterInvalid().sortedBy { it.value }.forEach {
+         //      if(ds.get(it)==null){
+         //          println("$it was not found INSERT")
+         //      }
+         //  }
         }
 
         val allRecordsBeforeDelete = ds.allRecords().filterInvalid().sortedBy { it.value }
         val toDelete = allRecordsBeforeDelete.filter { it.isValid() }.subList(numberOfRecords/8,numberOfRecords/2).shuffle(5000)
-        println("allRecords")
-        println(allRecordsBeforeDelete)
-        println("this i'm going to delete")
-        println(toDelete)
 
-        toDelete.forEach {
-            ds.delete(it)
-            println("deleted $it")
+        toDelete.forEach { del ->
+            ds.delete(del)
             ds.allRecords().filterInvalid().sortedBy { it.value }.forEach {
-                if(ds.get(it)==null){
-                    println("$it was not found")
-
+                val found = ds.get(it)
+                if(found==null){
+                    println("$it was not found DELETE after $del")
                 }
             }
         }
@@ -296,7 +297,7 @@ class LinearHashingPrednaska : StringSpec({
         }
         foundAll shouldBe true
 //
-    }.config(enabled = false)
+    }.config(enabled = true)
 
 
 })

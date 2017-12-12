@@ -30,7 +30,7 @@ class HeapFileBlock<T : Record<T>> : Block<T> {
     }
 
     constructor(numberOfRecordsInBlock: Int, instanceOfRecord: T) {
-        this.data = Collections.nCopies(numberOfRecordsInBlock,instanceOfRecord.apply { invalidate() })
+        this.data = Collections.nCopies(numberOfRecordsInBlock,instanceOfRecord.apply { invalidate() }).toMutableList()
         this.addressInFile = -1
         this.recordCount = numberOfRecordsInBlock
         this.ofType = instanceOfRecord
@@ -72,6 +72,7 @@ class HeapFileBlock<T : Record<T>> : Block<T> {
         recordBytes.forEach {
             readList.add(ofType.fromByteArray(it))
         }
+
         return HeapFileBlock(readList, addressInFile, ofType).apply {
             additionalBlockAddress          = additionalAddress
         }

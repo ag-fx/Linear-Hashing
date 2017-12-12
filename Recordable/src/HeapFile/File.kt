@@ -2,6 +2,7 @@ package HeapFile
 
 import AbstractData.*
 import LinearHashing.LinHashInfo
+import LinearHashing.LinearHashFileBlock
 import com.google.gson.Gson
 import record.emptyMutableList
 import src.ReadWrite
@@ -16,6 +17,7 @@ class HeapFile<T : Record<T>> {
     private val instanceOfRecord: T
     private val instanceOfBlock: HeapFileBlock<T>
     private val path:String
+    val numberOfRecordsInBlock:Int
     var totalNumberOfRecords :Int
     var totalNumberOfBlocks  :Int
     val emptyBlockAddresses  = emptyMutableList<Int>()
@@ -24,6 +26,7 @@ class HeapFile<T : Record<T>> {
         this.heapFile         = ReadWrite(path)
         this.path             = path
         this.instanceOfRecord = instanceOfRecord
+        this.numberOfRecordsInBlock = numberOfRecordsInBlock
         this.instanceOfBlock  = HeapFileBlock(numberOfRecordsInBlock, instanceOfRecord)
         val init = readState()
         totalNumberOfRecords  = init?.totalNumberOfRecords ?: 0
@@ -175,7 +178,7 @@ class HeapFile<T : Record<T>> {
                     copy.additionalBlockAddress = NoAdditionalBlockAddress
                     copy.writeToFile()
                     emptyBlockAddresses.add(block.addressInFile)
-                    tryTrim()
+                    //tryTrim()
                     totalNumberOfRecords -= deleteCount
                 }
 
@@ -282,7 +285,7 @@ class HeapFile<T : Record<T>> {
         }
 
     }
-    private fun tryTrim() {
+    fun tryTrim() {
         while(heapFile.size() > 0) {
             val lastBlock = getBlock((heapFile.size() - instanceOfBlock.byteSize).toInt())
             if(lastBlock.isEmpty()){
@@ -295,21 +298,21 @@ class HeapFile<T : Record<T>> {
         }
     }
 
-    fun shake(additionalBlockAddress: Int) {
-        val partlyEmptyBlocks = emptyMutableList<Block<T>>()
-        val readBlocks        = emptyMutableList<Block<T>>()
-        var block             = getBlock(additionalBlockAddress)
-        while(block.hasAdditionalBlock()){
-            readBlocks.add(block)
-            if(block.isNotFull())
-                partlyEmptyBlocks.add(block)
-            block = getBlock(block.additionalBlockAddress)
-        }
-
-        val test = getLastBlock(additionalBlockAddress)
-        val bl = block
-        println("wiii")
-    }
+//    fun shake(additionalBlockAddress: Int) {
+//        val partlyEmptyBlocks = emptyMutableList<Block<T>>()
+//        val readBlocks        = emptyMutableList<Block<T>>()
+//        var block             = getBlock(additionalBlockAddress)
+//        while(block.hasAdditionalBlock()){
+//            readBlocks.add(block)
+//            if(block.isNotFull())
+//                partlyEmptyBlocks.add(block)
+//            block = getBlock(block.additionalBlockAddress)
+//        }
+//
+//        val test = getLastBlock(additionalBlockAddress)
+//        val bl = block
+//        println("wiii")
+//    }
 
     fun close() {
         heapFile.close()
@@ -329,6 +332,42 @@ class HeapFile<T : Record<T>> {
         val json = File("info_$path").readText()
         val gson = Gson()
         return gson.fromJson(json,HeapFileInfo::class.java)
+    }
+
+    fun addWholeBlock(block: Block<T>, records: List<T>): AddBlockResult {
+        val blockToAdd = HeapFileBlock(numberOfRecordsInBlock,instanceOfRecord)
+        records.forEach{
+            blockToAdd.add(it)
+        }
+        // records.forEach{ blockToAdd.add(it)}
+
+        if (block.hasNotAdditionalBlock()) {
+            blockToAdd.addressInFile = getAddress()
+            blockToAdd.writeToFile()
+            totalNumberOfRecords+=records.size
+            return AddBlockResult.AddedToTheStart(blockToAdd.addressInFile, records.size)
+        } else {
+            var nextAddress = block.additionalBlockAddress
+            while (true) {
+                val nextBlock = getBlock(nextAddress)
+                if (nextBlock.hasAdditionalBlock()) {
+                    nextAddress = nextBlock.additionalBlockAddress
+                } else {
+                    blockToAdd.addressInFile = getAddress()
+                    nextBlock.additionalBlockAddress= blockToAdd.addressInFile
+                    blockToAdd.writeToFile()
+                    nextBlock.writeToFile()
+                    totalNumberOfRecords+=records.size
+                    return AddBlockResult.Added(records.size)
+                }
+            }
+        }
+
+    }
+
+    sealed class AddBlockResult{
+        data class AddedToTheStart(val address:Int, val numberOfRecords: Int) : AddBlockResult()
+        data class Added(val numberOfRecords: Int) : AddBlockResult()
     }
 
 }
