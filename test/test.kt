@@ -1,10 +1,7 @@
 package test
 import LinearHashing.LinearHashingFile
 import io.kotlintest.specs.StringSpec
-import model.Patient
-import model.PatientId
-import model.instanceOfPatientRecord
-import model.toRecord
+import model.*
 import java.util.*
 
 class DOHIS : StringSpec({
@@ -22,7 +19,20 @@ class DOHIS : StringSpec({
 
     val patients = (1..10000).map { Patient(PatientId(it)).toRecord() }
 
+   "erwrwe"{
 
+       val a = instanceOfHospitRecord
+       val ab = a.toByteArray()
+       val ba = a.byteSize
+       val id = PatientId(10)
+       val p = Patient(id)
+
+       val r = p.toRecord()
+       val rb = r.toByteArray()//6478 bjatov
+       val rbbbb= r.byteSize
+       val rp = r.fromByteArray(rb)
+       println()
+   }
     "insert test"{
         println("start")
         patients.forEach {
@@ -35,6 +45,6 @@ class DOHIS : StringSpec({
         }
         println("end")
 
-    }.config(enabled = true)
+    }.config(enabled = false)
 
 })

@@ -34,14 +34,7 @@ class Generator : View() {
                             (1..numberOfPatients.value).forEach {
                                 val id = PatientId(it)
                                 val p = Patient(id)
-                                val pbs = p.toRecord().byteSize
-                                try {
-                                    insertPatient(p)
-                                } catch (e: Exception) {
-                                    println(p)
-                                }
-
-                            }
+                                    insertPatient(p)                            }
                             println("done after ${System.currentTimeMillis()-cur} ")
                         }
                     }

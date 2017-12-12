@@ -84,7 +84,6 @@ open class LinearHashFileBlock<T: Record<T>> : Block<T> {
             else
                 write(invalidRecordByte)
         }
-        println()
     }
 
     override fun fromByteArray(byteArray: ByteArray): Block<T> {

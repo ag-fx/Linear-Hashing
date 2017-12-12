@@ -14,24 +14,21 @@ import java.util.*
 
 fun DataOutputStream.writeString(string: String, maxStringSize: Int) {
     writeInt(string.length)
-    write(string.toByteArray())
-    val sizeLeft = ByteArray((maxStringSize - string.length))
-    write(sizeLeft)
+    writeChars(string)
+    // 1..maxStringSize - string.length).forEach { writeChar(0) }
+    write(ByteArray((maxStringSize - string.length)*2))
 }
 
  fun DataInputStream.readString(maxStringSize: Int): String {
     var result = ""
     val stringLength = readInt()
-    val bytes = ByteArray(maxStringSize)
-    read(bytes)
-    val byt = ByteArray(stringLength)
-    System.arraycopy(bytes,0,byt,0,stringLength)
-    val read = String(byt)
-   ///  skipBytes(maxStringSize-stringLength * SizeOfChar.value)
-
-    return  read// String(bytes)//result
+    for (i in 1..stringLength) {
+        result += readChar()
+    }
+    skipBytes((maxStringSize - stringLength)*2)
+    //(1..maxStringSize - stringLength ).forEach { readChar() }
+    return result
 }
-
 
 fun DataOutputStream.writeValidity(validity: Validity) = writeInt(validity.value)
 

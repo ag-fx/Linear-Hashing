@@ -19,7 +19,7 @@ val patients = LinearHashingFile(
     minDensity = 0.55,
     numberOfRecordsInBlock = 3,
     blockCount = 2,
-    deleteFiles = true
+    deleteFiles = false
 )
 inline fun <A> A.log(desc : String = "",enabled:Boolean = false) = apply { if(enabled) println("$desc | ${this.toString()}") }
 
