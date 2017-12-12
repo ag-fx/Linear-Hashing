@@ -31,8 +31,15 @@ class Generator : View() {
                     action {
                         runAsyncWithProgress{
                             val cur = System.currentTimeMillis()
-                            (0..numberOfPatients.value).forEach {
-                                insertPatient(Patient(PatientId(it)))
+                            (1..numberOfPatients.value).forEach {
+                                val id = PatientId(it)
+                                val p = Patient(id)
+                                val pbs = p.toRecord().byteSize
+                                try {
+                                    insertPatient(p)
+                                } catch (e: Exception) {
+                                    println(p)
+                                }
 
                             }
                             println("done after ${System.currentTimeMillis()-cur} ")

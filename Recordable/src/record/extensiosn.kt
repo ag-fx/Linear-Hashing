@@ -1,45 +1,50 @@
-@file:Suppress("NOTHING_TO_INLINE")
 
 package record
 
 import AbstractData.SizeConst
-import AbstractData.SizeConst.SizeOfInt
+import AbstractData.SizeConst.*
+import AbstractData.plus
+import AbstractData.times
+import com.sun.xml.internal.ws.util.StringUtils
 import record.Validity.Invalid
 import record.Validity.Valid
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.util.*
 
- fun DataOutputStream.writeString(string: String, maxStringSize: Int) {
+fun DataOutputStream.writeString(string: String, maxStringSize: Int) {
     writeInt(string.length)
-    writeChars(string)
-    (1..maxStringSize - string.length).forEach { writeChar(0) }
+    write(string.toByteArray())
+    val sizeLeft = ByteArray((maxStringSize - string.length))
+    write(sizeLeft)
 }
 
  fun DataInputStream.readString(maxStringSize: Int): String {
     var result = ""
     val stringLength = readInt()
-    for (i in 1..stringLength) {
-        result += readChar()
-    }
-//    skipBytes(SizeConst.SizeOfChar.value * maxStringSize - stringLength-1)
-       (1..maxStringSize - stringLength ).forEach { readChar() }
-    return result
+    val bytes = ByteArray(maxStringSize)
+    read(bytes)
+    val byt = ByteArray(stringLength)
+    System.arraycopy(bytes,0,byt,0,stringLength)
+    val read = String(byt)
+   ///  skipBytes(maxStringSize-stringLength * SizeOfChar.value)
+
+    return  read// String(bytes)//result
 }
 
- fun DataOutputStream.writeValidity(validity: Validity) = writeInt(validity.value)
- fun DataInputStream .readValidity() = readInt().validityValue()
 
- fun DataOutputStream.writeDate(date: Date) = writeLong(date.time)
- fun DataInputStream .readDate() = Date(readLong())
+fun DataOutputStream.writeValidity(validity: Validity) = writeInt(validity.value)
 
- fun Int.validityValue()  = if(this==1) Valid else if (this==2) Invalid else throw IllegalArgumentException("Validitiy is either ${Valid.value} or ${Invalid.value}")
+fun DataInputStream .readValidity() = readInt().validityValue()
+
+fun DataOutputStream.writeDate(date: Date) = writeLong(date.time)
+
+fun DataInputStream .readDate() = Date(readLong())
+
+fun Int.validityValue()  = if(this==1) Valid else if (this==2) Invalid else throw IllegalArgumentException("Validitiy is either ${Valid.value} or ${Invalid.value}")
 
 enum class Validity(val value:Int){
     Valid  (1),
     Invalid(2)
 }
 fun <T> emptyMutableList() = LinkedList<T>()
-
-fun repeat(block: () -> Unit) = block
-infix inline fun (() -> Unit).until(cond: () -> Boolean) { while (!cond()) this() }

@@ -20,14 +20,16 @@ interface Record<out T> : Serializable<T>{
     fun DataInputStream .readString()                 = readString(stringSize)
     fun stringByteSize() :Int = stringSize * SizeOfChar + SizeOfInt
 }
- fun <T:Serializable<T>> Record<T>.invalidate() {
+
+fun <T : Serializable<T>> Record<T>.invalidate() {
     validity=Validity.Invalid
 }
- fun <T:Serializable<T>> Record<T>.validate() {
+
+fun <T : Serializable<T>> Record<T>.validate() {
     validity=Validity.Valid
 }
 
-fun toBytes(f: DataOutputStream.() -> Unit): ByteArray{
+inline fun toBytes(f: DataOutputStream.() -> Unit): ByteArray{
     val byteOutStream = ByteArrayOutputStream()
     val outStream     = DataOutputStream(byteOutStream)
     with(outStream){
@@ -35,5 +37,3 @@ fun toBytes(f: DataOutputStream.() -> Unit): ByteArray{
     }
     return byteOutStream.toByteArray()
 }
-
- fun <T:Record<T>> T.copy()  =this.toByteArray().let { this.fromByteArray(it) }

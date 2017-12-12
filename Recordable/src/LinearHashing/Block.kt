@@ -66,6 +66,7 @@ open class LinearHashFileBlock<T: Record<T>> : Block<T> {
     fun copy() = LinearHashFileBlock(this)
 
     override fun toByteArray() = toBytes {
+        var kontrola = 0
         writeValidity(validity)
         writeInt(addressInFile)
         writeInt(blockSize)
@@ -73,13 +74,17 @@ open class LinearHashFileBlock<T: Record<T>> : Block<T> {
         writeInt(additionalBlockAddress)
         writeInt(additionalRecordCount)
         writeInt(additionalBlockCount)
+        kontrola += SizeOfValidity.value + (SizeOfInt.value * 6)
+        val invalidRecordByte = ofType.apply { validity = Validity.Invalid }.toByteArray()
         for(i in 0 until blockSize){
+            kontrola += invalidRecordByte.size
             val record = data.getOrNull(i)
             if(record!=null)
                 write(record.toByteArray())
             else
-                write(ofType.apply { validity = Validity.Invalid }.toByteArray())
+                write(invalidRecordByte)
         }
+        println()
     }
 
     override fun fromByteArray(byteArray: ByteArray): Block<T> {
@@ -97,8 +102,7 @@ open class LinearHashFileBlock<T: Record<T>> : Block<T> {
         val byteRecords = emptyMutableList<ByteArray>()
         for (i in 0 until recordCount) {
             val bytes = ByteArray(recordSize)
-            for (j in 0 until recordSize)
-                bytes[j] = b.readByte()
+            System.arraycopy(byteArray, i * ofType.byteSize + (SizeOfInt * 7), bytes, 0, ofType.byteSize)
             byteRecords.add(bytes)
         }
         byteRecords.forEach {

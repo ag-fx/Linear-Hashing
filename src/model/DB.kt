@@ -7,7 +7,7 @@ import rnd
 import java.time.LocalDate
 
 val instanceOfHospitalization = Hospitalization(LocalDate.of(2000,6,20), LocalDate.of(2000,6,20), "instance")
-val instanceOfPatient         = Patient(PatientId(-1), "MENO", "PRIEZVISKO", LocalDate.of(2000,6,20), emptyList())
+val instanceOfPatient         = Patient(PatientId(-1), "MENO", "PRIEZVISKO", LocalDate.of(2000,6,20), listOf(instanceOfHospitalization))
 val instanceOfPatientRecord   = PatientRecord(instanceOfPatient).apply { invalidate() ; patient.hospitalizations.onEach { invalidate() }}
 val instanceOfHospitRecord    = HospitalizationRecord(instanceOfHospitalization).apply { invalidate() }
 
@@ -18,7 +18,8 @@ val patients = LinearHashingFile(
     maxDensity = 0.75,
     minDensity = 0.55,
     numberOfRecordsInBlock = 3,
-    blockCount = 2
+    blockCount = 2,
+    deleteFiles = true
 )
 inline fun <A> A.log(desc : String = "",enabled:Boolean = false) = apply { if(enabled) println("$desc | ${this.toString()}") }
 

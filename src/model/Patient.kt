@@ -1,10 +1,7 @@
 package model
 
-import AbstractData.Record
+import AbstractData.*
 import AbstractData.SizeConst.*
-import AbstractData.invalidate
-import AbstractData.plus
-import AbstractData.toBytes
 import com.intellij.util.containers.isNullOrEmpty
 import filterInvalid
 import javafx.collections.FXCollections
@@ -75,6 +72,7 @@ data class PatientRecord(val patient: Patient) : Record<PatientRecord>{
         writeValidity(validity)
         with(patient){
             writeInt(id.value)
+            writeInt(hospitalizations.size)
             writeString(firstName)
             writeString(lastName)
             writeDate(birthDate.toDate())
@@ -92,16 +90,16 @@ data class PatientRecord(val patient: Patient) : Record<PatientRecord>{
         val dis = DataInputStream(ByteArrayInputStream(byteArray))
         val valid = dis.readValidity()
         val id    = dis.readInt()
+        val size  = dis.readInt()
         val name  = dis.readString()
         val surn  = dis.readString()
         val birht = dis.readDate().toLocalDate()
         val readList = emptyMutableList<HospitalizationRecord>()
         val recordBytes = emptyMutableList<ByteArray>()
-        for (i in 0 until maxHospitalizationCount) {
+        for (i in 0 until size) {
             val bytes = ByteArray(instanceOfHospitRecord.byteSize)
-            for (j in 0 until instanceOfHospitRecord.byteSize)
-                bytes[j] = dis.readByte()
-            recordBytes.add(bytes)//readList.add(instanceOfHospitRecord.fromByteArray(bytes))
+            System.arraycopy(byteArray, i * instanceOfHospitRecord.byteSize + (SizeOfInt * 3 + stringByteSize() * 2 + SizeOfLong), bytes, 0, instanceOfHospitRecord.byteSize)
+            recordBytes.add(bytes)
         }
         recordBytes.forEach {
             readList.add(instanceOfHospitRecord.fromByteArray(it))
@@ -113,7 +111,7 @@ data class PatientRecord(val patient: Patient) : Record<PatientRecord>{
     override val hash = patient.id.value
     override val stringSize = 25
     override val byteSize
-        get ()= SizeOfValidity.value + SizeOfInt.value + (2 * stringByteSize()) + SizeOfDate + ( 100 * instanceOfHospitRecord.byteSize )
+        get ()= SizeOfValidity.value + (SizeOfInt.value *2)+ (2 * stringByteSize()) + SizeOfDate + ( 100 * instanceOfHospitRecord.byteSize )
     override var validity   = Valid
 
      override fun equals(other: Any?): Boolean {

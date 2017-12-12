@@ -66,10 +66,8 @@ class HeapFileBlock<T : Record<T>> : Block<T> {
         val recordBytes = emptyMutableList<ByteArray>()
         for (i in 0 until recordCount) {
             val bytes = ByteArray(ofType.byteSize)
-            for (j in 0 until ofType.byteSize)
-                bytes[j] = dis.readByte()
+            System.arraycopy(byteArray,i* ofType.byteSize +  (SizeOfInt*3),bytes,0,ofType.byteSize)
             recordBytes.add(bytes)
-            //readList.add(ofType.fromByteArray(bytes))
         }
         recordBytes.forEach {
             readList.add(ofType.fromByteArray(it))

@@ -12,6 +12,7 @@ interface Block<T>  : Serializable<Block<T>>{
 }
 
 fun <T : Serializable<T>> Block<T>.contains(item: T) = data.firstOrNull { it == item }?.let { true } ?: false
+
 fun <T : Serializable<T>> Block<T>.add(item: T): Boolean {
     if (isFull()) return false
     if(data.contains(item)) return false

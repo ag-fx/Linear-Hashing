@@ -12,26 +12,29 @@ class DOHIS : StringSpec({
     val ds = LinearHashingFile(
         pathToFile = "test____patients",
         instanceOfType = instanceOfPatientRecord,
-        numberOfRecordsInAdditionalBlock = 2,
-        maxDensity = 0.75,
-        minDensity = 0.55,
-        numberOfRecordsInBlock = 3,
+        numberOfRecordsInBlock = 10,
+        numberOfRecordsInAdditionalBlock = 4,
         blockCount = 2,
+        minDensity = 0.4,
+        maxDensity = 0.75,
         deleteFiles = true
     )
 
-    val patients = (1..5000).map { Patient(PatientId(it)).toRecord() }
+    val patients = (1..10000).map { Patient(PatientId(it)).toRecord() }
+
 
     "insert test"{
         println("start")
         patients.forEach {
-            val success = ds.add(it)
-            if(!success){
-                println("boha. $it")
-            }
+                val success = ds.add(it)
+                if(!success){
+                    println("boha. $it")
+                }
+
+
         }
         println("end")
 
-    }
+    }.config(enabled = true)
 
 })

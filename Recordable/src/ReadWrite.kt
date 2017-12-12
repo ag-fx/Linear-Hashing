@@ -10,11 +10,8 @@ class ReadWrite(val path: String) {
     fun size() = file.length()
     var lastByteAddress = 0
     fun write(byteArray: ByteArray, size: Int, position: Int): Boolean {
-        val empty = ByteArray(size)
         try {
             with(file) {
-                seek(position)
-                write(empty)
                 seek(position)
                 write(byteArray)
                 lastByteAddress = size
