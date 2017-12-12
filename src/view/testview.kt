@@ -1,12 +1,32 @@
 package gui
 
 import controller.BaseController
+import javafx.beans.property.SimpleStringProperty
+import javafx.scene.layout.Priority
 import javafx.scene.layout.VBox
+import model.patients
 import tornadofx.*
 import view.goHome
 
 
-class TestController: BaseController()
+class TestController: BaseController(){
+    val sout = SimpleStringProperty()
+
+    fun printblocks(){
+        val b = patients.blokInfo()
+        var sb = StringBuilder()
+        b.forEach {
+            sb.append("""
+
+                main : ${it.first}
+                addi : ${it.second}
+
+            """.trimIndent())
+
+        }
+        sout.set(sb.toString())
+    }
+}
 
 class TestView : View(){
     private val controller: TestController by inject()
@@ -14,12 +34,20 @@ class TestView : View(){
     override val root = VBox()
     init {
         with(root){
+            useMaxHeight = true
+
             goHome()
-            button("Do stuff") {
+            button("block info") {
                 action {
-                    println("did stuff")
+                  controller.printblocks()
                 }
             }
+            textarea {
+                vgrow = Priority.ALWAYS
+                useMaxHeight = true
+                useMaxWidth = true
+            }.bind(controller.sout)
+
         }
     }
 

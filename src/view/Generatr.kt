@@ -8,6 +8,7 @@ import javafx.scene.control.Label
 import javafx.scene.layout.HBox
 import javafx.scene.layout.VBox
 import model.*
+import shuffle
 import tornadofx.*
 import java.time.LocalDate
 import java.util.*
@@ -31,7 +32,7 @@ class Generator : View() {
                     action {
                         runAsyncWithProgress{
                             val cur = System.currentTimeMillis()
-                            (1..numberOfPatients.value).forEach {
+                            (1..numberOfPatients.value).shuffle().forEach {
                                 val id = PatientId(it)
                                 val p = Patient(id)
                                     insertPatient(p)                            }

@@ -11,7 +11,7 @@ val instanceOfPatient         = Patient(PatientId(-1), "MENO", "PRIEZVISKO", Loc
 val instanceOfPatientRecord   = PatientRecord(instanceOfPatient).apply { invalidate() ; patient.hospitalizations.onEach { invalidate() }}
 val instanceOfHospitRecord    = HospitalizationRecord(instanceOfHospitalization).apply { invalidate() }
 
-val patients = LinearHashingFile(
+val patients: LinearHashingFile<PatientRecord> = LinearHashingFile(
     pathToFile = "patients",
     instanceOfType = instanceOfPatientRecord,
     numberOfRecordsInAdditionalBlock = 2,
@@ -19,20 +19,29 @@ val patients = LinearHashingFile(
     minDensity = 0.55,
     numberOfRecordsInBlock = 3,
     blockCount = 2,
-    deleteFiles = false
+    deleteFiles = true
 )
-inline fun <A> A.log(desc : String = "",enabled:Boolean = false) = apply { if(enabled) println("$desc | ${this.toString()}") }
 
-fun insertPatient(patient: Patient)   = patients.add(patient.toRecord())                                                                        .log("inserting patient $patient")
+fun insertPatient(patient: Patient)    = patients.add(patient.toRecord()).log("inserting patient $patient")
 
-fun getPatient(patient: PatientId)    = patients.get(instanceOfPatientRecord    .copy(patient = instanceOfPatient.copy(id = patient)))?.patient .log("get patient $patient")
+fun getPatient(patient: PatientId)    = patients.get(patient)?.patient.log("get patient $patient")
 
-fun updatePatient(patient: Patient)   = patients.update(patient.toRecord())                                                                     .log("update patient $patient")
+fun updatePatient(patient: Patient)   = patients.update(patient.toRecord()).log("update patient $patient")
 
-fun deletePatient(patient: PatientId) = patients.delete(instanceOfPatientRecord .copy(patient = instanceOfPatient.copy(id = patient)))          .log("delete patient $patient")
-
-fun updatePatient(patient: PatientId) = patients.delete(instanceOfPatientRecord .copy(patient = instanceOfPatient.copy(id = patient)))          .log("update patient $patient")
+fun deletePatient(patient: PatientId) = patients.delete(patient).log("delete patient $patient")
 
 
 
-inline fun Int.pid() = PatientId(this)
+
+
+
+
+
+
+
+fun <A> A.log(desc : String = "",enabled:Boolean = false) = apply { if(enabled) println("$desc | ${this.toString()}") }
+
+ fun Int.pid() = PatientId(this)
+
+fun LinearHashingFile<PatientRecord>.get(patient: PatientId) = get(instanceOfPatientRecord    .copy(patient = instanceOfPatient.copy(id = patient)))
+fun LinearHashingFile<PatientRecord>.delete(patient: PatientId) = get(instanceOfPatientRecord    .copy(patient = instanceOfPatient.copy(id = patient)))

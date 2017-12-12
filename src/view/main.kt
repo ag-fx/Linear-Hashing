@@ -1,5 +1,6 @@
 package view
 
+import gui.TestView
 import javafx.application.Application.launch
 import javafx.application.Platform
 import javafx.geometry.Insets
@@ -50,12 +51,15 @@ class CenterView : View() {
         Pair("x. Hospitalizacia "              , AddHospitalizationView::class),
         Pair("6. Pridanie pacienta"            , AddPatientView ::class),
         Pair("x. Edit pacienta"                , EditPatientView ::class),
-        Pair("Generator"                       , Generator ::class)
+        Pair("Generator"                       , Generator ::class),
+        Pair("bloky"                           , TestView ::class)
     )
 
     override val root = vbox {
         prefWidth = 800.toDouble()
         prefHeight = 600.toDouble()
+        useMaxHeight = true
+
         style {
             padding = box(20.px)
         }

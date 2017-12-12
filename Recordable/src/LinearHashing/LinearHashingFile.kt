@@ -460,15 +460,15 @@ class LinearHashingFile<T : Record<T>> {
 
     internal fun allRecords() = allRecordsInFile() + additionalFile.allRecordsInFile()
 
-    internal fun allRecordsInFile() = allBlocksInFile().flatten()
+    internal fun allRecordsInFile() = allBlocksInFile().map { it.data }.flatten()
 
-    internal fun allBlocksInFile() : List<List<T>>{
+    internal fun allBlocksInFile() : List<Block<T>> {
         val blocksInFile = file.size() / blockByteSize
         val blocks = emptyMutableList<Block<T>>()
         (0 until blocksInFile)
             .map { block.fromByteArray(file.read(blockByteSize, (it * blockByteSize).toInt())) }
             .forEach { blocks += it }
-        return blocks.map { it.data }
+        return blocks.map { it }
     }
 
     private fun getBlock(address: Int) = block.fromByteArray(file.read(blockByteSize, address * blockByteSize))
@@ -483,6 +483,14 @@ class LinearHashingFile<T : Record<T>> {
 
     private fun Block<T>.getRecordFromAdditional(record: T)  = additionalFile.getRecord(additionalBlockAddress, record)
     private fun Block<T>.updateRecordIndditional(record: T)  = additionalFile.updateRecord(additionalBlockAddress, record)
+
+    fun blokInfo(): LinkedList<Pair<List<T>, List<List<T>>>> {
+       val blocks = emptyMutableList<Pair<List<T>, List<List<T>>>>()
+       allBlocksInFile().forEach {
+           blocks += it.data to it.getAdditionalBlocks()
+       }
+       return blocks
+     }
 
     override fun toString() : String {
         val ds = this //cause i copoied it and it's too late
