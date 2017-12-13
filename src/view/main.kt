@@ -1,6 +1,7 @@
 package view
 
 import gui.TestView
+import gui.VehicleView
 import javafx.application.Application.launch
 import javafx.application.Platform
 import javafx.geometry.Insets
@@ -24,6 +25,7 @@ class MainView : View() {
 
     init {
         with(root) {
+
             center = centerView.root
         }
     }
@@ -52,7 +54,8 @@ class CenterView : View() {
         Pair("6. Pridanie pacienta"            , AddPatientView ::class),
         Pair("x. Edit pacienta"                , EditPatientView ::class),
         Pair("Generator"                       , Generator ::class),
-        Pair("bloky"                           , TestView ::class)
+        Pair("bloky"                           , TestView ::class),
+        Pair("VEHICLE"                         , VehicleView ::class)
     )
 
     override val root = vbox {
@@ -62,7 +65,9 @@ class CenterView : View() {
 
         style {
             padding = box(20.px)
+
         }
+        println(com.sun.javafx.runtime.VersionInfo.getRuntimeVersion())
         menu.forEach {
             hbox {
                 button(it.first) {

@@ -258,7 +258,7 @@ class LinearHashingPrednaska : StringSpec({
 
     "insert, delete and find all"{
         val r = Random(5000)
-        val numberOfRecords = 2500 * 2
+        val numberOfRecords = 5000 * 2
         val toAdd = (1..numberOfRecords).map { MyInt(Math.abs(r.nextInt(numberOfRecords*2))) }//.distinctBy { it.value }
         toAdd.forEach{
             ds.add(it)

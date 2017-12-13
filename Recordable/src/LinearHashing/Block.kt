@@ -1,26 +1,24 @@
-@file:Suppress("LeakingThis")
-
 package LinearHashing
 
 import AbstractData.*
 import AbstractData.SizeConst.*
 import record.*
+import record.Validity.*
 import java.io.ByteArrayInputStream
 import java.io.DataInputStream
 
-       // splitBlock.getAdditionalBlocks(invalidateThem = true)
 
 open class LinearHashFileBlock<T: Record<T>> : Block<T> {
 
-    override var addressInFile: Int
-    override var additionalBlockAddress :Int
-     var additionalBlockCount :Int
-     var additionalRecordCount :Int
-    override val blockSize: Int
-    override var recordCount: Int
+    override var addressInFile          : Int
+    override var additionalBlockAddress : Int
+     var additionalBlockCount           : Int
+     var additionalRecordCount          : Int
+    override val blockSize              : Int
+    override var recordCount            : Int
         get() = data.size
-    override var data : MutableList<T>
-    override val ofType : T
+    override var data                   : MutableList<T>
+    override val ofType                 : T
     override fun toString() = data.toString()
 
 
@@ -28,8 +26,8 @@ open class LinearHashFileBlock<T: Record<T>> : Block<T> {
         this.blockSize     = blockSize
         this.recordCount   = blockSize
         this.addressInFile = addressInFile
-        this.data          = (0 until blockSize).map { ofType.apply { validity=Validity.Invalid } }.toMutableList()
-        ofType.validity    = Validity.Invalid
+        this.data          = (0 until blockSize).map { ofType.apply { validity= Invalid } }.toMutableList()
+        ofType.validity    = Invalid
         this.ofType        = ofType
         this.additionalBlockAddress = -1
         this.additionalRecordCount  = 0
@@ -59,8 +57,8 @@ open class LinearHashFileBlock<T: Record<T>> : Block<T> {
         this.data          = toCopy.data
         this.ofType        = toCopy.ofType
         this.additionalBlockAddress = toCopy.additionalBlockAddress
-        this.additionalRecordCount = toCopy.additionalRecordCount
-        this.additionalBlockCount  = toCopy.additionalBlockCount
+        this.additionalRecordCount  = toCopy.additionalRecordCount
+        this.additionalBlockCount   = toCopy.additionalBlockCount
     }
 
     fun copy() = LinearHashFileBlock(this)
@@ -75,7 +73,7 @@ open class LinearHashFileBlock<T: Record<T>> : Block<T> {
         writeInt(additionalRecordCount)
         writeInt(additionalBlockCount)
         kontrola += SizeOfValidity.value + (SizeOfInt.value * 6)
-        val invalidRecordByte = ofType.apply { validity = Validity.Invalid }.toByteArray()
+        val invalidRecordByte = ofType.apply { validity = Invalid }.toByteArray()
         for(i in 0 until blockSize){
             kontrola += invalidRecordByte.size
             val record = data.getOrNull(i)
@@ -121,6 +119,6 @@ open class LinearHashFileBlock<T: Record<T>> : Block<T> {
 
     override val byteSize: Int
         get() = SizeOfValidity + SizeOfInt + SizeOfInt + SizeOfInt + SizeOfInt + SizeOfInt + SizeOfInt + (blockSize * ofType.byteSize)
-    override var validity: Validity = Validity.Valid
+    override var validity = Valid
 
 }

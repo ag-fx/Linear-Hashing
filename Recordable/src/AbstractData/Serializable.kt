@@ -11,4 +11,3 @@ interface Serializable<out T> {
 
 fun <T> Serializable<T>.isValid  () = validity == Validity.Valid
 fun <T> Serializable<T>.isInvalid() = validity == Validity.Invalid
-

@@ -37,8 +37,8 @@ class HospitalizationModel : ItemViewModel<Hospitalization>() {
     }
 }
 
+fun Hospitalization.toRecord() = HospitalizationRecord(this)
 
-inline fun Hospitalization.toRecord() = HospitalizationRecord(this)
 data class HospitalizationRecord(val hospitalization: Hospitalization) : Record<HospitalizationRecord> {
 
     override fun toByteArray(): ByteArray = toBytes{

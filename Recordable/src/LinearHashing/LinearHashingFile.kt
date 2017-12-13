@@ -15,7 +15,6 @@ import java.io.File
 import java.lang.Math.pow
 import java.util.*
 
-
 class LinearHashingFile<T : Record<T>> {
     val pathToFile: String
     val pathToAdditionalFile: String
@@ -110,8 +109,9 @@ class LinearHashingFile<T : Record<T>> {
     }
 
     fun add(record: T): Boolean {
+        insertCount.operationCount++
         val block = getBlock(record)
-
+        insertCount.totalDiskAccess++
         if(block.contains(record)) return false
 
         val result =  when (block.state()) {
@@ -122,7 +122,9 @@ class LinearHashingFile<T : Record<T>> {
     }
 
     fun get(record: T): T? {
+        findCount.operationCount++
         val blockOfRecord = getBlock(record)
+        findCount.totalDiskAccess++
         when{
             blockOfRecord.contains(record)        -> return blockOfRecord.get(record)
             blockOfRecord.hasNotAdditionalBlock() -> return null
@@ -131,11 +133,15 @@ class LinearHashingFile<T : Record<T>> {
     }
 
     fun delete(record: T): Boolean {
+        deleteCount.operationCount++
         val block = getBlock(record)
+        deleteCount.totalDiskAccess++
+
         when {
             block.contains(record) -> {
                 if (block.delete(record)) {
                     write(block)
+                    deleteCount.totalDiskAccess++
                     actualRecordsCount--
                     merge()
                     return true
@@ -160,40 +166,82 @@ class LinearHashingFile<T : Record<T>> {
             //posledna skupina a= S + M*2^level-1
             val moveFromAddress =((actualSplitAddress + getFirstHashModulo() * blockByteSize - blockByteSize)/blockByteSize)
             val moveFrom = getBlock(moveFromAddress)
+            deleteCount.totalDiskAccess++
+
             val moveFromRecords = moveFrom.getAllRecords(true).filter { it.isValid() }
+            deleteCount.totalDiskAccess += (moveFromRecords.size/additionalRecordsCount).toInt()  // *2 ?
+
             actualRecordsCount -= moveFrom.data.filter { it.isValid() }.size
             if(actualSplitAddress > 0){
                 //b = S - 1
-                val moveToAddress =  (actualSplitAddress - blockByteSize)/blockByteSize
-                val moveTo = getBlock(moveToAddress)
+                val moveToAddress = (actualSplitAddress - blockByteSize)/blockByteSize
+                val moveTo = getBlock(moveToAddress) as LinearHashFileBlock
+                deleteCount.totalDiskAccess++
 
                 moveFromRecords.forEach {
                     if(moveTo.add(it))
                         actualRecordsCount++
                 }
-                write(moveTo)
+               // write(moveTo)
+                val startBlockCount = moveTo.additionalBlockCount
                 val moveToAdditional = moveFromRecords - moveTo.data
-                moveToAdditional.forEach {
-                    moveTo.addToAdditionalFile(it)
+                val newBlocksToAddToAdditioanl  =  Iterables.partition(moveToAdditional,numberOfRecordsInAdditionalBlock)
+                newBlocksToAddToAdditioanl.forEach {
+                    val result= additionalFile.addWholeBlock(moveTo,it)
+                    when(result){
+                        is AddBlockResult.AddedToTheStart -> {  //todo ..dobre to ratam?
+                            moveTo.additionalBlockAddress = result.address
+                            moveTo.additionalBlockCount++
+                            moveTo.additionalRecordCount += result.numberOfRecords
+                        }
+                        is AddBlockResult.Added -> {
+                            moveTo.additionalBlockCount++
+                            moveTo.additionalRecordCount += result.numberOfRecords
+                        }
+                    }
                 }
+                deleteCount.totalDiskAccess += moveTo.additionalBlockCount - startBlockCount
+                write(moveTo)
+                deleteCount.totalDiskAccess++
+
                 actualSplitAddress = moveToAddress * blockByteSize
                 file.shrink(blockByteSize)
+                deleteCount.totalDiskAccess++
+
                 actualBlockCount--
 
 
             } else if(actualSplitAddress==0 && currentLevel > 0){
                 // b = M * 2^(level -1) - 1
                 val moveToAddress = (((numberOfBlocks * pow(2.0,currentLevel - 1.0) ) * blockByteSize - blockByteSize)/blockByteSize).toInt()
-                val moveTo = getBlock(moveToAddress)
+                val moveTo = getBlock(moveToAddress) as LinearHashFileBlock
                 moveFromRecords.forEach {
                    if(moveTo.add(it))
                        actualRecordsCount++
                 }
-                write(moveTo)
+           //     write(moveTo)
+                val startBlockCount = moveTo.additionalBlockCount
                 val moveToAdditional = moveFromRecords - moveTo.data
-                moveToAdditional.forEach {
-                    moveTo.addToAdditionalFile(it)
+                val newBlocksToAddToAdditioanl  =  Iterables.partition(moveToAdditional,numberOfRecordsInAdditionalBlock)
+                newBlocksToAddToAdditioanl.forEach {
+                    val result= additionalFile.addWholeBlock(moveTo,it)
+                    when(result){
+                        is AddBlockResult.AddedToTheStart -> {  //todo ..dobre to ratam?
+                            moveTo.additionalBlockAddress = result.address
+                            moveTo.additionalBlockCount++
+                            moveTo.additionalRecordCount += result.numberOfRecords
+                        }
+                        is AddBlockResult.Added -> {
+                            moveTo.additionalBlockCount++
+                            moveTo.additionalRecordCount += result.numberOfRecords
+                        }
+                    }
                 }
+                deleteCount.totalDiskAccess += moveTo.additionalBlockCount - startBlockCount
+
+                write(moveTo)
+                deleteCount.totalDiskAccess++
+
                 actualSplitAddress = moveToAddress * blockByteSize
                 currentLevel--
 
@@ -207,14 +255,9 @@ class LinearHashingFile<T : Record<T>> {
 
     }
 
-
-
     private fun Block<T>.deleteFromAdditional(record: T): Boolean {
         val editBlock = (this as LinearHashFileBlock).copy()
         with(editBlock){
-               val a = additionalBlockCount
-               val b = additionalRecordCount
-               val c = this@LinearHashingFile.numberOfRecordsInAdditionalBlock
                val success = additionalFile.delete(additionalBlockAddress,record)
                when(success){
                    DeleteResult.Deleted     -> additionalRecordCount--
@@ -237,11 +280,9 @@ class LinearHashingFile<T : Record<T>> {
                write(this@with)
 
                if(willSaveBlock()){
-                  // print("save,")
-                   shakeThat(this)//additionalFile.shake(additionalBlockAddress)
+                   shakeThat(this)
                }
            }
-//        val address = additionalFile.delete(additionalBlockAddress,record)
         return true
     }
 
@@ -255,15 +296,13 @@ class LinearHashingFile<T : Record<T>> {
         for(i in 0 until emptySpaceInBlock){
             if(bl.add(additional.removeFirst())){
                 actualRecordsCount++
-            }else{
-               // println("ERRR")
             }
         }
 
 
         bl.additionalBlockAddress = -1
-        bl.additionalRecordCount = 0
-        bl.additionalBlockCount = 0//-1
+        bl.additionalRecordCount  = 0
+        bl.additionalBlockCount   = 0
 
         val newBlocksToAddToAdditioanl  =  Iterables.partition(additional,numberOfRecordsInAdditionalBlock)
         newBlocksToAddToAdditioanl.forEach {
@@ -280,7 +319,6 @@ class LinearHashingFile<T : Record<T>> {
                 }
             }
         }
-
         write(bl)
     }
 
@@ -312,6 +350,8 @@ class LinearHashingFile<T : Record<T>> {
             }
         }
         write(thisBlock)
+        insertCount.totalDiskAccess++
+
         splitCheck()
         return true
     }
@@ -320,6 +360,7 @@ class LinearHashingFile<T : Record<T>> {
         if(block.isFull()) throw IllegalArgumentException("Block is full")
         block.add(record)
         write(block)
+        insertCount.totalDiskAccess++
         actualRecordsCount++
         splitCheck()
         return true
@@ -329,9 +370,15 @@ class LinearHashingFile<T : Record<T>> {
     private fun split() {
         val addressOfNewBlockInFile = actualSplitAddress + getFirstHashModulo() * blockByteSize
         file.allocate(numberOfBlocks = 1, startAddressInFile = addressOfNewBlockInFile)
+        insertCount.totalDiskAccess++
         val newBlock          = getBlock(addressOfNewBlockInFile / blockByteSize) as LinearHashFileBlock
         val splitBlock        = getBlock(actualSplitAddress      / blockByteSize) as LinearHashFileBlock
+        insertCount.totalDiskAccess++
+        insertCount.totalDiskAccess++
+
         val additionalBlocks  = splitBlock.getAdditionalBlocks( invalidateThem = true)
+        insertCount.totalDiskAccess += additionalBlocks.size
+
         val additionalRecords = additionalBlocks.flatten().reversed()
 
         val recordsToMove = (additionalRecords + splitBlock.data)
@@ -367,29 +414,6 @@ class LinearHashingFile<T : Record<T>> {
 
         }
 
-/*
-        recordsToAddToAdditionalForNewBlock.forEach {
-
-            val addResult = additionalFile.add(newBlock, it)
-            when (addResult) {
-                is AddResult.RecordAddedToExistingBlock -> {
-                    newBlock.additionalRecordCount++
-                }
-                is AddResult.RecordAddedToNewBlock      -> {
-                    newBlock.additionalBlockCount ++
-                    newBlock.additionalRecordCount++
-                }
-                is AddResult.FirstAdditionalBlock       -> {
-                    newBlock.additionalBlockAddress = addResult.newBlockAddress
-                    newBlock.additionalBlockCount ++
-                    newBlock.additionalRecordCount++
-                }
-                is AddResult.RecordWasNotAdded          -> doNothing()
-            }
-
-        }
-*/
-
         val block = LinearHashFileBlock(blockSize = numberOfRecordsInBlock, ofType = instanceOfType, addressInFile = splitBlock.addressInFile)
         recordsThatStayed.forEach {
             if(block.add(it))
@@ -418,14 +442,14 @@ class LinearHashingFile<T : Record<T>> {
 
         write(newBlock)
         actualBlockCount++
+        insertCount.totalDiskAccess++
 
         write(block)
+        insertCount.totalDiskAccess++
+
         actualSplitAddress += block.byteSize
         additionalFile.tryTrim()
-        merge()
     }
-
-
 
     private fun splitCheck() {
         while (shouldSplit) {
@@ -438,7 +462,7 @@ class LinearHashingFile<T : Record<T>> {
         }
     }
 
-    private val shouldSplit get() = currentDensity > maxDensity
+    private val shouldSplit get()     = currentDensity > maxDensity
 
     private fun getFirstHashModulo()  = (numberOfBlocks * pow(2.toDouble(), currentLevel    .toDouble())).toInt()
 
@@ -482,6 +506,7 @@ class LinearHashingFile<T : Record<T>> {
     private fun Block<T>.getAllRecords(invalidateThem: Boolean) = (this.data + getAdditionalBlocks(true).flatten()).filter { it.isValid() }
 
     private fun Block<T>.getRecordFromAdditional(record: T)  = additionalFile.getRecord(additionalBlockAddress, record)
+
     private fun Block<T>.updateRecordIndditional(record: T)  = additionalFile.updateRecord(additionalBlockAddress, record)
 
     fun blokInfo(): LinkedList<Pair<List<T>, List<List<T>>>> {
@@ -519,14 +544,14 @@ class LinearHashingFile<T : Record<T>> {
     private fun save() {
         val state = LinHashInfo(
             numberOfRecordsInBlock = this.numberOfRecordsInBlock,
-            blockByteSize = this.blockByteSize,
-            currentLevel = this.currentLevel,
-            actualRecordsCount = this.actualRecordsCount,
-            actualSplitAddress = this.actualSplitAddress,
-            actualBlockCount = this.actualBlockCount,
-            numberOfBlocks = this.numberOfBlocks,
-            minDensity = this.minDensity,
-            maxDensity = this.maxDensity
+            blockByteSize          = this.blockByteSize,
+            currentLevel           = this.currentLevel,
+            actualRecordsCount     = this.actualRecordsCount,
+            actualSplitAddress     = this.actualSplitAddress,
+            actualBlockCount       = this.actualBlockCount,
+            numberOfBlocks         = this.numberOfBlocks,
+            minDensity             = this.minDensity,
+            maxDensity             = this.maxDensity
         )
         val g = Gson()
         val stateJson = g.toJson(state)
@@ -544,9 +569,7 @@ class LinearHashingFile<T : Record<T>> {
 
 }
 
-fun doNothing(){}
 fun Double.roundDown2() = ((this* 1e2).toLong() / 1e2)
-
 
 data class LinHashInfo(
     val numberOfRecordsInBlock: Int,
@@ -559,3 +582,9 @@ data class LinHashInfo(
     val minDensity: Double,
     val maxDensity: Double
 )
+
+
+internal data class OperationCount(var totalDiskAccess:Int=0, var operationCount:Int = 0)
+internal val insertCount = OperationCount()
+internal val deleteCount = OperationCount()
+internal val findCount   = OperationCount()

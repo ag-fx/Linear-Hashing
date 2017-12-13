@@ -44,6 +44,8 @@ class TestView : View(){
             }
             textarea {
                 vgrow = Priority.ALWAYS
+                isCache = false
+                scrollpane { isCache=false;childrenUnmodifiable.forEach { it.isCache=false } }
                 useMaxHeight = true
                 useMaxWidth = true
             }.bind(controller.sout)

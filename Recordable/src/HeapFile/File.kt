@@ -1,26 +1,24 @@
 package HeapFile
 
 import AbstractData.*
-import LinearHashing.LinHashInfo
-import LinearHashing.LinearHashFileBlock
+import LinearHashing.*
 import com.google.gson.Gson
 import record.emptyMutableList
 import src.ReadWrite
 import java.io.File
-import java.util.*
 
 class HeapFile<T : Record<T>> {
 
-  //  private val blockRecordCount: Int
-    private val blockSize: Int get () = instanceOfBlock.byteSize
-    private val heapFile: ReadWrite
-    private val instanceOfRecord: T
-    private val instanceOfBlock: HeapFileBlock<T>
-    private val path:String
-    val numberOfRecordsInBlock:Int
-    var totalNumberOfRecords :Int
-    var totalNumberOfBlocks  :Int
-    val emptyBlockAddresses  = emptyMutableList<Int>()
+    private val blockSize                : Int
+        get () = instanceOfBlock.byteSize
+    private val heapFile                 : ReadWrite
+    private val instanceOfRecord         : T
+    private val instanceOfBlock          : HeapFileBlock<T>
+    private val path                     : String
+    private val numberOfRecordsInBlock   : Int
+     var totalNumberOfRecords     : Int
+     var totalNumberOfBlocks      : Int
+    private val emptyBlockAddresses = emptyMutableList<Int>()
 
     constructor(path: String, instanceOfRecord: T, numberOfRecordsInBlock: Int) {
         this.heapFile         = ReadWrite(path)
@@ -33,8 +31,6 @@ class HeapFile<T : Record<T>> {
         totalNumberOfBlocks   = init?.totalNumberOfBlocks ?: 0
         emptyBlockAddresses.addAll(init?.emptyBlockAddresses?: emptyList())
     }
-
-
 
     /**
      * @return returns address of the block that records has been inserted to
@@ -65,11 +61,10 @@ class HeapFile<T : Record<T>> {
      */
     @Suppress("UNCHECKED_CAST")
     fun add(linearHashBlock: Block<T>, record: T): AddResult {
-        //val additionalBlockStartAddress = linearHashBlock.additionalBlockAddress
-
         if (linearHashBlock.hasAdditionalBlock()) {
             val additionalBlockNotFound = true
             var additionalBlock = getBlock(linearHashBlock.additionalBlockAddress)
+            insertCount.totalDiskAccess++
 
             while(additionalBlockNotFound){
 
@@ -80,9 +75,11 @@ class HeapFile<T : Record<T>> {
                 if (additionalBlock.isFull()) {
                     if (additionalBlock.hasAdditionalBlock()) {
                         additionalBlock = getBlock(additionalBlock.additionalBlockAddress)
+                        insertCount.totalDiskAccess++
                     } else {
                         additionalBlock.additionalBlockAddress = add(record)
                         additionalBlock.writeToFile()
+                        insertCount.totalDiskAccess++
                         return AddResult.RecordAddedToNewBlock(additionalBlock.additionalBlockAddress)
                     }
                 } else {
@@ -90,6 +87,7 @@ class HeapFile<T : Record<T>> {
                     if (success) {
                         totalNumberOfRecords++
                         additionalBlock.writeToFile()
+                        insertCount.totalDiskAccess++
                         return AddResult.RecordAddedToExistingBlock
                     } else {
                         return AddResult.RecordWasNotAdded
@@ -101,6 +99,7 @@ class HeapFile<T : Record<T>> {
         } else {
             val emptyAddress = getAddress()
             val heapBlock    = getBlock(emptyAddress)
+            insertCount.totalDiskAccess++
             var success      = heapBlock.add(record)
             if(success)
                 totalNumberOfRecords++
@@ -110,19 +109,23 @@ class HeapFile<T : Record<T>> {
             emptyBlockAddresses.remove(heapBlock.addressInFile)
             val addressInHeapFile = heapBlock.addressInFile
             heapBlock.writeToFile()
+            insertCount.totalDiskAccess++
+
             return AddResult.FirstAdditionalBlock(newBlockAddress = addressInHeapFile)
         }
         throw IllegalStateException("This should not end up here")
     }
 
     sealed class AddResult{
-        object RecordAddedToExistingBlock                           :AddResult()
-        data class RecordAddedToNewBlock(val newBlockAddress:Int)   :AddResult()
-        data class FirstAdditionalBlock (val newBlockAddress:Int)   :AddResult()
-        object RecordWasNotAdded                                    :AddResult()
-        object RecordWasUpdated                                     :AddResult()
+        object RecordAddedToExistingBlock                           : AddResult()
+        data class RecordAddedToNewBlock(val newBlockAddress:Int)   : AddResult()
+        data class FirstAdditionalBlock (val newBlockAddress:Int)   : AddResult()
+        object RecordWasNotAdded                                    : AddResult()
+        object RecordWasUpdated                                     : AddResult()
     }
-    private fun getAddress(): Int = if (emptyBlockAddresses.isNotEmpty())
+
+    private fun getAddress(): Int {
+        return if (emptyBlockAddresses.isNotEmpty())
             emptyBlockAddresses.removeFirst()
         else {
             val lastPositionInFile = heapFile.size().toInt()
@@ -131,9 +134,9 @@ class HeapFile<T : Record<T>> {
             heapFile.writeFrom(position = lastPositionInFile, byteArray = newBlock.toByteArray())
             emptyBlockAddresses.add(lastPositionInFile)
             totalNumberOfBlocks++
-            /*return*/ lastPositionInFile
+            lastPositionInFile
         }
-
+    }
 
     fun getBlock(address: Int): Block<T> {
         val blockBytes = heapFile.read(blockSize,address)
@@ -193,6 +196,8 @@ class HeapFile<T : Record<T>> {
         val lastNotFound = true
         while(lastNotFound){
             val block = getBlock(additionalBlockAddress)
+            findCount.totalDiskAccess++
+
             if(block.hasAdditionalBlock()){
                 if(block.contains(record)) return block.get(record)
                 else additionalBlockAddress = block.additionalBlockAddress
@@ -228,11 +233,15 @@ class HeapFile<T : Record<T>> {
         val lastNotFound = true
         while (lastNotFound) {
             val block = getBlock(additionalBlockAddress)
+            deleteCount.totalDiskAccess++
+
             readBlocks.add(block)
             if(block.contains(record)){
                 block.delete(record)
                 totalNumberOfRecords--
                 block.writeToFile()
+                deleteCount.totalDiskAccess++
+
                 if(block.isEmpty()){
                     if(readBlocks.size==1 && block.hasNotAdditionalBlock()){
                         emptyBlockAddresses.add(block.addressInFile)
@@ -245,15 +254,15 @@ class HeapFile<T : Record<T>> {
                     }
                     else{
                         val blockThatPointsToTheLast = readBlocks.first { it.additionalBlockAddress == block.addressInFile }
-                        //if(block.additionalBlockAddress != NoAdditionalBlockAddress)
-                        blockThatPointsToTheLast.additionalBlockAddress = block.additionalBlockAddress//NoAdditionalBlockAddress
+                        blockThatPointsToTheLast.additionalBlockAddress = block.additionalBlockAddress //NoAdditionalBlockAddress
                         blockThatPointsToTheLast.writeToFile()
+                        deleteCount.totalDiskAccess++
+
                         emptyBlockAddresses.add(block.addressInFile)
                         totalNumberOfBlocks--
                         return DeleteResult.BlockAndRecordDeleted
                     }
                 }
-//                tryTrim()
                 return DeleteResult.Deleted
             }
 
@@ -274,22 +283,16 @@ class HeapFile<T : Record<T>> {
         data class AdditionalStartAddressMoved(val newAddress:Int) : DeleteResult()
     }
 
-    fun getLastBlock(startAddress : Int) : Block<T>{
-        var address = startAddress
-        while(true){
-            val block = getBlock(address)
-            if(block.hasNotAdditionalBlock())
-                return block
-            else
-                address = block.additionalBlockAddress
-        }
 
-    }
     fun tryTrim() {
         while(heapFile.size() > 0) {
             val lastBlock = getBlock((heapFile.size() - instanceOfBlock.byteSize).toInt())
+            insertCount.totalDiskAccess++
+
             if(lastBlock.isEmpty()){
                 heapFile.shrink(instanceOfBlock.byteSize)
+                insertCount.totalDiskAccess++
+
                 emptyBlockAddresses.remove(lastBlock.addressInFile)
                 totalNumberOfBlocks--
             }
@@ -297,22 +300,6 @@ class HeapFile<T : Record<T>> {
                 return
         }
     }
-
-//    fun shake(additionalBlockAddress: Int) {
-//        val partlyEmptyBlocks = emptyMutableList<Block<T>>()
-//        val readBlocks        = emptyMutableList<Block<T>>()
-//        var block             = getBlock(additionalBlockAddress)
-//        while(block.hasAdditionalBlock()){
-//            readBlocks.add(block)
-//            if(block.isNotFull())
-//                partlyEmptyBlocks.add(block)
-//            block = getBlock(block.additionalBlockAddress)
-//        }
-//
-//        val test = getLastBlock(additionalBlockAddress)
-//        val bl = block
-//        println("wiii")
-//    }
 
     fun close() {
         heapFile.close()
@@ -325,7 +312,7 @@ class HeapFile<T : Record<T>> {
         File("info_$path").writeText(stateJson)
     }
 
-    fun readState(): HeapFileInfo? {
+    private fun readState(): HeapFileInfo? {
         val file = File("info_$path")
         if(!file.exists()) return null
 
@@ -339,17 +326,20 @@ class HeapFile<T : Record<T>> {
         records.forEach{
             blockToAdd.add(it)
         }
-        // records.forEach{ blockToAdd.add(it)}
 
         if (block.hasNotAdditionalBlock()) {
             blockToAdd.addressInFile = getAddress()
             blockToAdd.writeToFile()
+            insertCount.operationCount++
+
             totalNumberOfRecords+=records.size
             return AddBlockResult.AddedToTheStart(blockToAdd.addressInFile, records.size)
         } else {
             var nextAddress = block.additionalBlockAddress
             while (true) {
                 val nextBlock = getBlock(nextAddress)
+                insertCount.operationCount++
+
                 if (nextBlock.hasAdditionalBlock()) {
                     nextAddress = nextBlock.additionalBlockAddress
                 } else {
@@ -357,6 +347,9 @@ class HeapFile<T : Record<T>> {
                     nextBlock.additionalBlockAddress= blockToAdd.addressInFile
                     blockToAdd.writeToFile()
                     nextBlock.writeToFile()
+                    insertCount.operationCount++
+                    insertCount.operationCount++
+
                     totalNumberOfRecords+=records.size
                     return AddBlockResult.Added(records.size)
                 }

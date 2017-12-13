@@ -101,9 +101,11 @@ data class PatientRecord(val patient: Patient) : Record<PatientRecord>{
             System.arraycopy(byteArray, i * instanceOfHospitRecord.byteSize + (SizeOfInt * 3 + stringByteSize() * 2 + SizeOfLong), bytes, 0, instanceOfHospitRecord.byteSize)
             recordBytes.add(bytes)
         }
+
         recordBytes.forEach {
             readList.add(instanceOfHospitRecord.fromByteArray(it))
         }
+
         val toReturnHospit: List<Hospitalization> = readList.filterInvalid().map { it.hospitalization }
         return PatientRecord(Patient(PatientId(id), name, surn, birht, toReturnHospit)).apply { validity = valid }
     }
